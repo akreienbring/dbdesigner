@@ -8,7 +8,7 @@
     "webpack": "npx webpack --config webpack.config.js --display-modules",
     "checkupdates": "ncu"
   },
-  "author": "Andr� Kreienbring",
+  "author": "Andé Kreienbring",
   "license": "GPL-3.0-only",
   "devDependencies": {
     "css-loader": "^3.6.0",
