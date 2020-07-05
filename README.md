@@ -9,7 +9,7 @@
 1. [Visual Alchemist reloaded](#visual-alchemist-reloaded)
 2. [What it is](#what-it-is)
 3. [Version 1.0.7](#version-107)
-4. [Version 2.0.0](#version-200)
+4. [Version 2.1.0](#version-210)
 5. [Screenshots](#screenshots)
 6. [For users](#for-users)
 7. [For developers](#for-developers)
@@ -42,9 +42,9 @@ The version number of Prahlads original repo is 1.0.7. Here are the features of 
 - Export the database as raw sql code (`mysql` dialect).
 - Export the database as raw sql code (`sqlite` dialect).
 
-## Version 2.0.0
+## Version 2.1.0
 
-I beamed the version number to 2.0.0. because major code reorganization has been done and the following (main) features were added:
+I beamed the version number to 2.1.0. because major code reorganization has been done and the following (main) features were added:
 
 - Renaming existing tables and fields.
 - Reorder columns
@@ -52,7 +52,7 @@ I beamed the version number to 2.0.0. because major code reorganization has been
 - Zoom the canvas for a better overview.
 - Added Datepicker for selecting Date / DateTime values.
 - A scrollable canvas for being able to create lots of tables.
-- Creation of composite foreign contraints
+- Creation of composite foreign constraints
 
 ## Screenshots
 
@@ -66,7 +66,7 @@ What to download for a minimal installation?
 * Get the "dist" folder
 * Get the index.html and the startUp.js (the latter only if you want to use the express webserver.. see below)
 * From the "src" folder you'll need the "assets" and the "img" folder.
-* Grab the "src/lib" folder if you want  or get your preferred version of jQuery and Bootstrap. (Tested with 3.4.1 / 4.4.1)
+* Grab the "src/lib" folder if you want  or get your preferred version of jQuery and Bootstrap and Popper. (Tested with 3.5.1 / 4.5.0 / 1.16.1)
 * All other software (javascript, css and external libs) are bundled in the dbdesigner.js that you'll find in the "dist" folder.
 
 So the final structure of a minimal installation looks like this:
@@ -75,7 +75,7 @@ DBDesigner
 |__index.html
 |__startUp.js
 |__dist
-   |__vialch.js
+   |__dbdesigner.js
 |__src
    |__assets
    |__img
@@ -99,12 +99,12 @@ If not, hmm... it's definitely worth the time to get started with these framewor
 
 ## Supported Browsers
 
-So far I tested with the current versions of Firefox and Chrome. And I can say that IE 11 definitely does NOT work.
+So far I tested with the current versions of Firefox, Chrome and Edge. And I can say that IE 11 definitely does NOT work.
 
 ## License
 
 DBDesigner is free and open source, and it always will be. It is licensed under the [GPLv3](https://opensource.org/licenses/GPL-3.0).
 
-AndrÃ© Kreienbring
+André Kreienbring
 
 Mar, 2020
