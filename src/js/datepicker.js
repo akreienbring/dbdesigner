@@ -13,7 +13,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import "tempusdominus-bootstrap-4";
-
 /**
  * Interface to the implemented datepicker.
  * As of today this is Tempus Dominus Bootstrap 4
