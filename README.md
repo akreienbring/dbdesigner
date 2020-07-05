@@ -2,7 +2,7 @@
 ![Status](https://img.shields.io/badge/status-stable-brightgreen.svg)
 [![](https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=8RBU2DYK9AT9Q&source=url)
 
-# Visual Alchemist
+# DBDesigner
 
 ##### Table of Contents
 
@@ -25,11 +25,9 @@ This is a major rewrite / update of the 4 year old repository from Prahlad Yery.
 
 I basically ripped the code apart into modules and added new functionality as described below.
 
-As this is a fork of the original repository I will create a Pull Request for Prahlad. I simply don't know if he's interested in further development of the software. 
-
 ## What it is
 
-Visual Alchemist is a visual design tool for Entity Relationship Diagrams (ERD) that can be run by using a webserver and a browser.
+DBDesigner is a visual design tool for Entity Relationship Diagrams (ERD) that can be run by using a webserver and a browser.
 Once the tables and their fields are designed the code to create the entities can be generated and executed on the target database system.
 
 ## Version 1.0.7
@@ -49,10 +47,12 @@ The version number of Prahlads original repo is 1.0.7. Here are the features of 
 I beamed the version number to 2.0.0. because major code reorganization has been done and the following (main) features were added:
 
 - Renaming existing tables and fields.
+- Reorder columns
 - Editing existing fields.
 - Zoom the canvas for a better overview.
 - Added Datepicker for selecting Date / DateTime values.
 - A scrollable canvas for being able to create lots of tables.
+- Creation of composite foreign contraints
 
 ## Screenshots
 
@@ -67,11 +67,11 @@ What to download for a minimal installation?
 * Get the index.html and the startUp.js (the latter only if you want to use the express webserver.. see below)
 * From the "src" folder you'll need the "assets" and the "img" folder.
 * Grab the "src/lib" folder if you want  or get your preferred version of jQuery and Bootstrap. (Tested with 3.4.1 / 4.4.1)
-* All other software (javascript, css and external libs) are bundled in the vialch.js that you'll find in the "dist" folder.
+* All other software (javascript, css and external libs) are bundled in the dbdesigner.js that you'll find in the "dist" folder.
 
 So the final structure of a minimal installation looks like this:
 ```
-VisualAlchemist
+DBDesigner
 |__index.html
 |__startUp.js
 |__dist
@@ -82,10 +82,10 @@ VisualAlchemist
    |__lib
 ```  
 
-You'll need a webserver of your choice to run the tool. However, I included a little javascript "startUp.js" that uses express to get you started.
+You'll need a webserver of your choice to run the tool. However, I included a little Javascript "startUp.js" that uses express to get you started.
 
 1. Install node.js (with npm) https://nodejs.org
-2. Go to your applicaton root (VisualAlchimist in the sample above)
+2. Go to your applicaton root (DBDesigner in the sample above)
    - type `npm init` and follow the initialization procedure
    - type `npm install --save express`
 3. Run the server with `node startUp.js`
@@ -103,7 +103,7 @@ So far I tested with the current versions of Firefox and Chrome. And I can say t
 
 ## License
 
-Visual Alchemist is free and open source, and it always will be. It is licensed under the [GPLv3](https://opensource.org/licenses/GPL-3.0).
+DBDesigner is free and open source, and it always will be. It is licensed under the [GPLv3](https://opensource.org/licenses/GPL-3.0).
 
 André Kreienbring
 

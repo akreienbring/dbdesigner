@@ -28,7 +28,7 @@ const logger = Logger.getClassLogger("DBDesigner");
 class DBDesigner{
     constructor(context, namespaceWrapper) {
     	this.tables = {};
-     	this.version = "2.0.0"; //TODO: Remember to automate this.
+     	this.version;
     	this.context = context;
     	this.namespaceWrapper = namespaceWrapper + " ";
     	this.codeGenerator = new CodeGenerator(this.context);
@@ -105,6 +105,80 @@ class DBDesigner{
 		tableDialog.saveData();
 	};
 	
+	/**
+	 * CURRENTLY UNUSED Left here for knowing how to do this
+	 * Shows a dismissable popover for a field in a table
+	 * @see app.createThePanel()
+	 */
+	togglePopup(tableId, fieldId){
+		
+		//as the fieldName element apperantly does NOT get the focus if clicked, we need give it the focus manually
+		//$field.focus();
+	};
+	
+	/**
+	 * Moves a field of the given table up or down
+	 * The JSON that represents the tables structure needs to be updated
+	 * The fields are moved by an event that is defined in createThePanel()
+	 * @param tableId the id of a table
+	 * @param sortedFieldId the id of a field in the table
+	 * @see app.createThePanel()
+	 */
+	moveField(tableId, sortedFieldId, offset){
+		//offset is either -1 or 1
+		const table = dbdesigner.tables[tableId];
+		
+		let fieldIndex = 0;
+		let fieldIndexInTable;
+		let arrayOfFields = [];
+		
+		//create an array with the fields of the object and get the current index of the moved field
+		jQuery.each(table.fields, function(fieldId,field) {
+			//table.fields[fieldId] = new Field(field);
+			if (fieldId == sortedFieldId){
+				fieldIndexInTable = fieldIndex;
+				//return false;		
+			}else{
+				fieldIndex += 1;		
+			};
+			
+			arrayOfFields.push(field);
+		});
+		
+		if(arrayOfFields.length > 1){
+			logger.log("Field will be moved by " + offset);
+			logger.debug("Old order: " + JSON.stringify(table.fields));
+			logger.debug("Index of field " + sortedFieldId + " in table " + tableId + " is " + fieldIndexInTable);
+			
+			//replacedIndex is the index of the field that will be replaced with the field that is moved
+			let replacedIndex = fieldIndexInTable + offset;
+			if (replacedIndex < 0){
+			    replacedIndex = arrayOfFields.length -1;
+				logger.debug("lower rotation! Setting replacedIndex = to " + replacedIndex);
+			}else if(replacedIndex >= arrayOfFields.length){
+			    replacedIndex = 0;
+				logger.debug("upper rotation! Setting replacedIndex = to " + replacedIndex);
+			}
+			
+			logger.debug("Going to replace " + replacedIndex + " with index " + fieldIndexInTable);
+			
+			//save the replaced field
+			const replacedField = arrayOfFields[replacedIndex];
+			arrayOfFields[replacedIndex] = arrayOfFields[fieldIndexInTable];
+			arrayOfFields[fieldIndexInTable] = replacedField;
+			
+			//recreate the tables fields from the array
+			table.fields = {};
+			for (let i = 0; i < arrayOfFields.length; i++) {
+				table.fields[arrayOfFields[i].id]	= arrayOfFields[i];
+			};
+		
+			logger.debug("New order: " + JSON.stringify(table.fields));
+			
+			app.updateTable(table, true);
+		};
+	};
+	
 	/*
 	 * Select the code that was generated. Called from the resultsDialog HTML
 	 */
@@ -124,9 +198,6 @@ class DBDesigner{
 	        success: (event) =>{
 	            if (event.button == "button1") {
 	                app.deleteTable(this.tables[tableId]);
-	            	delete this.tables[tableId];
-	                app.jsPlumbInstance.empty("tblDiv" + tableId);
-	                jQuery("#tblDiv" + tableId).remove();
 	            };
 	        }
 	    });
@@ -155,7 +226,7 @@ class DBDesigner{
 	 */
 	importCanvas(){
 		logger.log('IMPORT_CANVAS');
-		const file = jQuery('#inputCanvasFile')[0].files[0];
+		const file = jQuery(this.namespaceWrapper + '#inputCanvasFile')[0].files[0];
 	
 		const fr = new FileReader();
 		fr.readAsText(file);
@@ -168,7 +239,7 @@ class DBDesigner{
 		fr.onerror = function (ev) {
 	        logger.error("error reading file");
 	    }
-		jQuery("#inputCanvasFile").val("");
+		jQuery(this.namespaceWrapper + "#inputCanvasFile").val("");
 	};
 	
 	/*

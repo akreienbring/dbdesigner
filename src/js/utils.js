@@ -32,7 +32,7 @@ class Utils{
 	    if (options==undefined) options={};
 		if (options.type==undefined) options.type='text';
 		if (options.text==undefined) options.text='';
-		if (options.title==undefined) options.title='Visual Alchemist';
+		if (options.title==undefined) options.title='DBDesigner';
 		return options;
 		
 	};
@@ -314,6 +314,10 @@ class Utils{
 	eraseCookie(name) 
 	{
 	    createCookie(name, "", -1);
+	};
+	
+	shortenString(text, length){
+		return text.length > length - 3? text.substring(0, length - 3) + "... <span class='fas fa-info-circle fa-lg'></span>" : text;	
 	};
 
 	//http://stackoverflow.com/questions/985272/selecting-text-in-an-element-akin-to-highlighting-with-your-mouse

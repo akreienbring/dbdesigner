@@ -12,7 +12,7 @@ app.get('/', function (req, res) {
 });
 
 app.listen(3000, function () {
-  console.log("Visual Alchemist listening on port 3000!");
+  console.log("DBDesigner listening on port 3000!");
   console.log("Navigate your browser to 'http://localhost:3000'");
 });
 

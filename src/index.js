@@ -18,6 +18,7 @@ import "./css/app.scss";
 import "./lib/tempusdominus-bootstrap-4.css";
 import "@fortawesome/fontawesome-free/js/fontawesome";
 import "@fortawesome/fontawesome-free/js/solid";
+import * as pjson from '../package.json';
 
 /**
  * This is the entrypoint for Webpack. It basically creates the dbdesigner interface
@@ -25,7 +26,8 @@ import "@fortawesome/fontawesome-free/js/solid";
  */
 jQuery(document).ready(function () {
 	//Construct the Interface with the context and the CSS namespace wrapper.
-	window.dbdesigner = new DBDesigner(document.URL + "src/", ".vialch");
+	window.dbdesigner = new DBDesigner(document.URL + "src/", ".dbdesigner");
+	window.dbdesigner.version = pjson.version;
 	window.dbdesigner.app.start();
 });
 

@@ -30,8 +30,12 @@ class ZoomIt{
     	this.minScale = 0.6;
     	this.maxScale = 1;
     	this.events = 'animationend transitionend webkitAnimationEnd oanimationend MSAnimationEnd webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd';
-    	this.initialEndpointSize;
-    };
+    	
+		//the following are initialized during app.start()
+		this.initialEndpointWidth;
+     	this.initialEndpointHeight;
+		this.$zoomSlider;
+   };
     
     /**
      * makes the Table DIV zoomable
@@ -77,66 +81,75 @@ class ZoomIt{
  	 */
  	adjustJsPlumbEndpoints(table, field){
  		if (field.pkEndpoint != null) {
- 			const pkAnchor = jQuery(dbdesigner.namespaceWrapper + "#tblDiv" + table.id + " div[fpname='" + table.id + "." +  field.id + "']");
- 			const pkImage = jQuery(dbdesigner.namespaceWrapper + ".zoomablePk" + table.id + "_" + field.id);
+ 			const $pkAnchor = jQuery(dbdesigner.namespaceWrapper + "#tblDiv" + table.id + " div[fpname='" + table.id + "." +  field.id + "']");
+ 			const $pkImage = jQuery(dbdesigner.namespaceWrapper + ".zoomablePk" + table.id + "_" + field.id);
 			
-    		logger.log(table.name + "." +  field.name + " PK Anchor offset: " + JSON.stringify(pkAnchor.offset()));
-			logger.log(table.name + "." +  field.name + " PK Image offset: " + JSON.stringify(pkImage.offset()));
+    		logger.debug(table.name + "." +  field.name + " PK Anchor offset: " + JSON.stringify($pkAnchor.offset()));
+			logger.debug(table.name + "." +  field.name + " PK Image offset: " + JSON.stringify($pkImage.offset()));
 				
-			let pkchangeLeft = (pkAnchor.offset().left - pkImage.offset().left);  // find change in top
-			let pkchangeTop = (pkAnchor.offset().top - pkImage.offset().top);  // find change in top
+			let pkchangeLeft = ($pkAnchor.offset().left - $pkImage.offset().left);  // find change in left
+			let pkchangeTop = ($pkAnchor.offset().top - $pkImage.offset().top);  // find change in top
 	        
+			const pkAnchorLocation = field.pkEndpoint.anchor.getCurrentLocation();
+			logger.debug("pkAnchor Location is: " + JSON.stringify(pkAnchorLocation));
 			
 			//apply the zoom to icon width, height and the anchor offsets
 			const pkZoomedEndpointSettings = [
-				this.initialEndpointSize * this.currentZoom, //width
-				this.initialEndpointSize * this.currentZoom, //height
-				field.pkEndpoint.anchor.orientation[0] * this.currentZoom, //x orientation
-				field.pkEndpoint.anchor.orientation[1] * this.currentZoom  //y orientation
+				this.initialEndpointWidth * this.currentZoom, //width
+				this.initialEndpointHeight * this.currentZoom, //height
+				pkAnchorLocation[2] * this.currentZoom, //x location
+				pkAnchorLocation[3] * this.currentZoom  //y location
 			];
+			
+			logger.debug("pkZoomedEndpointSettings: " + JSON.stringify(pkZoomedEndpointSettings));
 			
 			field.pkEndpoint.endpoint.width = pkZoomedEndpointSettings[0];
 			field.pkEndpoint.endpoint.height = pkZoomedEndpointSettings[1];
 			
-	        //apply the zoomed anchor settings
-			pkZoomedEndpointSettings[2] == 0 ? pkchangeLeft += pkZoomedEndpointSettings[0] / 2: pkchangeLeft += pkZoomedEndpointSettings[0] / 2 * pkZoomedEndpointSettings[2];
-			pkZoomedEndpointSettings[3] == 0 ? pkchangeTop += pkZoomedEndpointSettings[1] / 2: pkchangeTop += pkZoomedEndpointSettings[1] / 2 * pkZoomedEndpointSettings[3];
-
-			logger.log("PK changeLeft: " + pkchangeLeft + "PK changeTop: " + pkchangeTop);
+	        //apply the zoomed anchor settings. 
+			//the size of the icon and the offset values are taken into account to calculate the new position
+			pkZoomedEndpointSettings[2] == 0 ? pkchangeLeft += pkZoomedEndpointSettings[0] / 2: pkchangeLeft += (pkZoomedEndpointSettings[0] / 2) * pkZoomedEndpointSettings[2];
+			pkZoomedEndpointSettings[3] == 0 ? pkchangeTop += pkZoomedEndpointSettings[1] / 2: pkchangeTop += (pkZoomedEndpointSettings[1] / 2) * pkZoomedEndpointSettings[3];
 			
 			pkchangeLeft += field.pkEndpoint.anchor.offsets[0];
 			pkchangeTop += field.pkEndpoint.anchor.offsets[1];
-			field.pkEndpoint.setAnchor([1, 0.5, 1, 0.5, pkchangeLeft, pkchangeTop]);
-			
+
+			logger.debug("PK changeLeft: " + pkchangeLeft + "PK changeTop: " + pkchangeTop);
+			field.pkEndpoint.setAnchor([0.5, 0.5, 0, 0, pkchangeLeft, pkchangeTop]);
 	    };
 				
-	    const fkAnchor = jQuery(dbdesigner.namespaceWrapper + "#tblDiv" + table.id + " div[ffname='" + table.id + "." +  field.id + "']");
-	    const fkImage = jQuery(dbdesigner.namespaceWrapper + ".zoomableFk" + table.id + "_" + field.id);
+	    const $fkAnchor = jQuery(dbdesigner.namespaceWrapper + "#tblDiv" + table.id + " div[ffname='" + table.id + "." +  field.id + "']");
+	    const $fkImage = jQuery(dbdesigner.namespaceWrapper + ".zoomableFk" + table.id + "_" + field.id);
 		
-		logger.log(table.name + "." +  field.name + " FK Anchor offset: " + JSON.stringify(fkAnchor.offset()));
-		logger.log(table.name + "." +  field.name + " FK Image offset: " + JSON.stringify(fkImage.offset()));
+		logger.debug(table.name + "." +  field.name + " FK Anchor offset: " + JSON.stringify($fkAnchor.offset()));
+		logger.debug(table.name + "." +  field.name + " FK Image offset: " + JSON.stringify($fkImage.offset()));
 		
-		let fkchangeLeft = (fkAnchor.offset().left - fkImage.offset().left);  // find change in top
-		let fkchangeTop = (fkAnchor.offset().top - fkImage.offset().top); // find change in top
+		let fkchangeLeft = ($fkAnchor.offset().left - $fkImage.offset().left);  // find change in left
+		let fkchangeTop = ($fkAnchor.offset().top - $fkImage.offset().top); // find change in top
         
+		const fkAnchorLocation = field.fkEndpoint.anchor.getCurrentLocation();
+		logger.debug("fkAnchor Location is: " + JSON.stringify(fkAnchorLocation));
+		
 		const fkZoomedEndpointSettings = [
-			this.initialEndpointSize * this.currentZoom, //width
-			this.initialEndpointSize * this.currentZoom, //height
-			field.fkEndpoint.anchor.orientation[0] * this.currentZoom, //x orientation
-			field.fkEndpoint.anchor.orientation[1] * this.currentZoom  //y orientation
+			this.initialEndpointWidth * this.currentZoom, //width
+			this.initialEndpointHeight * this.currentZoom, //height
+			fkAnchorLocation[2] * this.currentZoom, //x location
+			fkAnchorLocation[3] * this.currentZoom  //y location
 		];
+		
+		logger.debug("fkZoomedEndpointSettings: " + JSON.stringify(fkZoomedEndpointSettings));
 		
 		field.fkEndpoint.endpoint.width = fkZoomedEndpointSettings[0];
 		field.fkEndpoint.endpoint.height = fkZoomedEndpointSettings[1];
 		
-		fkZoomedEndpointSettings[2] == 0 ? fkchangeLeft -= fkZoomedEndpointSettings[0] / 2: fkchangeLeft -= fkZoomedEndpointSettings[0] / 2 * fkZoomedEndpointSettings[2];
-		fkZoomedEndpointSettings[3] == 0 ? fkchangeTop += fkZoomedEndpointSettings[1] / 2: fkchangeTop += fkZoomedEndpointSettings[1] / 2 * fkZoomedEndpointSettings[3];
-
-		logger.log("FK fkchangeLeft: " + fkchangeLeft + " FK fkchangeTop: " + fkchangeTop);
+		fkZoomedEndpointSettings[2] == 0 ? fkchangeLeft -= fkZoomedEndpointSettings[0] / 2: fkchangeLeft -= (fkZoomedEndpointSettings[0] / 2) * fkZoomedEndpointSettings[2];
+		fkZoomedEndpointSettings[3] == 0 ? fkchangeTop += fkZoomedEndpointSettings[1] / 2: fkchangeTop += (fkZoomedEndpointSettings[1] / 2) * fkZoomedEndpointSettings[3];
 	    
 		fkchangeLeft += field.fkEndpoint.anchor.offsets[0];
 		fkchangeTop += field.fkEndpoint.anchor.offsets[1];
-		field.fkEndpoint.setAnchor([0, 0.5, 0, 0.5, fkchangeLeft, fkchangeTop]);
+
+		logger.debug("FK fkchangeLeft: " + fkchangeLeft + " FK fkchangeTop: " + fkchangeTop);
+		field.fkEndpoint.setAnchor([0.5, 0.5, 0, 0, fkchangeLeft, fkchangeTop]);
  	};
  	
  	/**
@@ -146,14 +159,17 @@ class ZoomIt{
  	 * @param table the table object that will be zoomed
  	 */
  	zoomTable(table){
+		
 		this.onAnimationEnd(jQuery(dbdesigner.namespaceWrapper + "#tblDiv" + table.id), () =>{
  	  		jQuery.each(table.fields, (fieldId, field) => {
  	  			this.adjustJsPlumbEndpoints(table, field);
  	 		});
- 	  		
+	
  	  		//once zoomed unbind the event listener
  	  		jQuery(dbdesigner.namespaceWrapper + "#tblDiv" + table.id).off(this.events)
- 	  		logger.log("zoomed to " + this.currentZoom);
+ 	  		logger.log("zoomed " + table.name + " to " + this.currentZoom);
+
+			this.$zoomSlider.trigger("dbdesigner:zoomfinished", [table]);
 		});
 		
 		//zoom with animation! Necessary to fire the transitionend event after zooming
@@ -171,7 +187,7 @@ class ZoomIt{
         		this.zoomTable(table);
     		}, 0);			
 		});
-    	
+		
     	this.lastZoom = this.currentZoom;
     }; 
     

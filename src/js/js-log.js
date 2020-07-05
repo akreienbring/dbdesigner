@@ -118,7 +118,13 @@ class Logger{
 	 * @param loggerName The Name of the logger that will be disabled. 
 	 */
 	static disable(loggerName){
-		loggers.find( logger => logger.loggerName === loggerName ).isEnabled = false;
+		const logger = loggers.find( logger => logger.loggerName === loggerName);
+		
+		if(!logger){
+			throw "A Logger with the name " + loggerName + " does not exist";	
+		};
+		
+		logger.isEnabled = false;
 	};
 	
 	/**
@@ -126,7 +132,13 @@ class Logger{
 	 * @param loggerName The Name of the logger that will be enabled. 
 	 */
 	static enable(loggerName){
-		loggers.find( logger => logger.loggerName === loggerName).isEnabled = true;
+		const logger = loggers.find( logger => logger.loggerName === loggerName);
+		
+		if(!logger){
+			throw "A Logger with the name " + loggerName + " does not exist";	
+		};
+		
+		logger.isEnabled = true;
 	};
 	
 	/**
@@ -178,12 +190,16 @@ class Logger{
 	 */
 	static getFunctionLogger(classLoggerName, functionLoggerName){
 		
+		const classLogger = loggers.find( classLogger => classLogger.loggerName === classLoggerName);
+		
+		if(!classLogger){
+			throw "ClassLogger " + classLoggerName + " does not exist";	
+		};
+		
 		let functionLogger = loggers.find( functionLogger => functionLogger.loggerName === functionLoggerName);
 		
 		if (!functionLogger){
 			functionLogger = new Logger(functionLoggerName);
-			
-			const classLogger = loggers.find( classLogger => classLogger.loggerName === classLoggerName);
 			
 			//bind the returned function to the console. IMPORTANT: This preserves the context of the caller!
 			functionLogger.log = console.log.bind(console, classLoggerName + "->" + functionLoggerName + ": ");

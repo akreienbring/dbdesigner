@@ -23,24 +23,7 @@ const logger = Logger.getClassLogger("LocalStorage");
  */
 class Storage{
     constructor() {
-    	this.storageKey = "dbdesigner";
-	 	this.asyncLocalStorage = {
- 		    setItem: (key, value) => {
- 		        return Promise.resolve().then( () => {
- 		            return localStorage.setItem(key, value);
- 		        });
- 		    },
- 		    removeItem: (key) => {
- 		        return Promise.resolve().then( () => {
- 		        	return localStorage.removeItem(key);
- 		        });
- 		    },
- 		    getItem: (key) =>{
- 		        return Promise.resolve().then( () => {
- 		        	return localStorage.getItem(key);
- 		        });
- 		    },
- 		};
+   		this.storageKey = "dbdesigner";
     };
     
     /**
@@ -49,20 +32,19 @@ class Storage{
      * @return A Promise that is resolved with true if the storage is available.
      */
     isReady(){
-    	return this.asyncLocalStorage.getItem(this.storageKey)
-    	.then((json) =>{
-    		if(json == null){
-		    	logger.log("Initializing dbdesigner storage with {zoom: 1, strTables: {}}");
-		    	return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify({zoom: 1, strTables: {}}));
-     		}else{
-     			return true;
-     		};
-    	}).then(() =>{
-    		return true;
-    	}).catch((err) =>{
-    		  logger.error(err);
-    		  return false;
-    	}); 
+    	try{
+	        return Promise.resolve().then( () => {
+				const json = localStorage.getItem(this.storageKey);
+				if(json == null){
+			    	logger.log("Initializing dbdesigner storage with {zoom: 1, strTables: {}}");
+			    	localStorage.setItem(this.storageKey, JSON.stringify({zoom: 1, strTables: {}}));
+		 		};
+				return true;
+	        });
+		}catch(err){
+		   logger.error(err);
+		   return Promise.resolve(false);
+		};
     };
     
     /**
@@ -71,7 +53,9 @@ class Storage{
      * @return A Promise that is resolved when the value was actually set
      */
     set(appData){
-    	return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify(appData));    	
+        return Promise.resolve().then( () => {
+			localStorage.setItem(this.storageKey, JSON.stringify(appData));
+        });
     };
     
     /**
@@ -79,10 +63,10 @@ class Storage{
      * @return A Promise that is resolved with the application data object when the value was retrieved
      */
     get(){
-    	return this.asyncLocalStorage.getItem(this.storageKey)
-    	.then((jsonString) =>{
-    		return JSON.parse(jsonString);
-    	});
+        return Promise.resolve().then( () => {
+	    	const jsonString = localStorage.getItem(this.storageKey)
+			return JSON.parse(jsonString);	
+        });
     };
     
     /**
@@ -92,9 +76,13 @@ class Storage{
      */
     remove(completely){
     	if(completely){
-        	return this.asyncLocalStorage.removeItem(this.storageKey);
-    	}else{
-        	return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify({zoom: 1, strTables: {}}));
+	        return Promise.resolve().then( () => {
+	            localStorage.removeItem(this.storageKey);
+	        });
+     	}else{
+ 	        return Promise.resolve().then( () => {
+       			localStorage.setItem(this.storageKey, JSON.stringify({zoom: 1, strTables: {}}));
+	        });
     	};
     };
     
@@ -106,34 +94,35 @@ class Storage{
      * @return A Promise that is resolved when the table was created.
      */
     createTable(table){
-    	return this.asyncLocalStorage.getItem(this.storageKey)
-    	.then((jsonString) => {
-    		let appData =  JSON.parse(jsonString);
-    		//get a unique id for the table
-    		const tableId = this.idGenerator(appData.strTables, table);
-    		table.id = tableId;
-    		appData.strTables[tableId] = new Table(table.name);
-    		appData.strTables[tableId].id = table.id;
-    		appData.strTables[tableId].name = table.name;
-    		appData.strTables[tableId].position = table.position;
-    		appData.strTables[tableId].fields = {};
-    		
-    		let fieldId;
-    		Object.keys(table.fields).forEach( (field) => {
-    			table.fields[field].tableId = tableId;
-    			//get a unique id for the field
-    			fieldId = this.idGenerator(appData.strTables, table.fields[field]);
-    			
-    			table.fields[fieldId] = new Field(table.fields[field]);
-    			table.fields[fieldId].id = fieldId;
-    			table.fields[fieldId].tableId = table.id;
-    			delete table.fields[field];
-    			
-    			appData.strTables[tableId].fields[fieldId] = table.fields[fieldId];
-     		});
-     		
-    		return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify(appData)); 
-    	});
+        return Promise.resolve().then( () => {
+	    	logger.debug("createTable was called with table " + JSON.stringify(table))
+	    	const jsonString = localStorage.getItem(this.storageKey)
+			const appData =  JSON.parse(jsonString);
+			//get a unique id for the table
+			const tableId = this.idGenerator(appData.strTables, table);
+			table.id = tableId;
+			appData.strTables[tableId] = new Table(table.name);
+			appData.strTables[tableId].id = tableId;
+			appData.strTables[tableId].name = table.name;
+			appData.strTables[tableId].position = table.position;
+			appData.strTables[tableId].fields = {};
+			
+			let fieldId;
+			Object.keys(table.fields).forEach( (field) => {
+				table.fields[field].tableId = tableId;
+				//get a unique id for the field
+				fieldId = this.idGenerator(appData.strTables, table.fields[field]);
+				
+				table.fields[fieldId] = new Field(table.fields[field]);
+				table.fields[fieldId].id = fieldId;
+				table.fields[fieldId].tableId = table.id;
+				delete table.fields[field];
+				
+				appData.strTables[tableId].fields[fieldId] = table.fields[fieldId];
+	 		});
+		
+			localStorage.setItem(this.storageKey, JSON.stringify(appData)); 
+        });
     };
     
     /**
@@ -142,13 +131,15 @@ class Storage{
      * @param updateFields Is ignored by this kind of storage
      */
     updateTable(table, updateFields){
-    	return this.asyncLocalStorage.getItem(this.storageKey)
-    	.then((jsonString) =>{
-    		let appData =  JSON.parse(jsonString);
-    		appData.strTables[table.id] = table;
-    		return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify(appData)); 
-    	});
-    	
+        return Promise.resolve().then( () => {
+	    	logger.debug("updateTable was called with table " + JSON.stringify(table))
+	     	const jsonString = localStorage.getItem(this.storageKey)
+			const appData =  JSON.parse(jsonString);
+	    	
+			appData.strTables[table.id] = table;
+			
+			localStorage.setItem(this.storageKey, JSON.stringify(appData)); 
+        });
     };
     
     /**
@@ -157,12 +148,15 @@ class Storage{
      * @return A Promise that is resolved when the table was deleted.
      */
     deleteTable(table){
-    	return this.asyncLocalStorage.getItem(this.storageKey)
-    	.then((jsonString) =>{
-    		let appData =  JSON.parse(jsonString);
-    		delete appData.strTables[table.id];
-    		return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify(appData)); 
-    	});
+        return Promise.resolve().then( () => {
+	    	logger.debug("deleteTable was called with table " + JSON.stringify(table))
+	     	const jsonString = localStorage.getItem(this.storageKey)
+			const appData =  JSON.parse(jsonString);
+			
+			delete appData.strTables[table.id];
+	
+			localStorage.setItem(this.storageKey, JSON.stringify(appData)); 
+        });
      };
     
      /**
@@ -174,21 +168,23 @@ class Storage{
       * @return A Promise that is resolved when the field was created.
       */
     createField(table, field){
-    	return this.asyncLocalStorage.getItem(this.storageKey)
-    	.then((jsonString) => {
-    		let appData =  JSON.parse(jsonString);
-    		field.tableId = table.id;
-    		const fieldId = this.idGenerator(appData.strTables, field)
- 
-		    table.fields[fieldId] = new Field(field);
+        return Promise.resolve().then( () => {
+	    	logger.debug("createField was called with field " + JSON.stringify(field))
+	     	const jsonString = localStorage.getItem(this.storageKey)
+			const appData =  JSON.parse(jsonString);
+			
+			field.tableId = table.id;
+			const fieldId = this.idGenerator(appData.strTables, field)
+		    field.id = fieldId;
+			table.fields[fieldId] = new Field(field);
 			table.fields[fieldId].id = fieldId;
 			table.fields[fieldId].tableId = table.id;
 			delete table.fields[field.name];
-    			
+			
 			appData.strTables[table.id].fields[fieldId] = table.fields[fieldId];
-
-    		return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify(appData)); 
-     	});
+				
+			localStorage.setItem(this.storageKey, JSON.stringify(appData)); 
+        });
     };
     
     /**
@@ -198,12 +194,15 @@ class Storage{
      * @return A Promise that is resolved when the field was updated.
      */
     updateField(table, field){
-    	return this.asyncLocalStorage.getItem(this.storageKey)
-    	.then((jsonString) =>{
-    		let appData =  JSON.parse(jsonString);
-    		appData.strTables[table.id].fields[field.id] = field;
-    		return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify(appData)); 
-    	});
+        return Promise.resolve().then( () => {
+	    	logger.debug("updateField was called with field " + JSON.stringify(field))
+	     	const jsonString = localStorage.getItem(this.storageKey)
+			const appData =  JSON.parse(jsonString);
+			
+			appData.strTables[table.id].fields[field.id] = field;
+			
+			localStorage.setItem(this.storageKey, JSON.stringify(appData)); 
+        });
     };
     
     /**
@@ -213,12 +212,15 @@ class Storage{
      * @return A Promise that is resolved when the field was deleted.
      */
     deleteField(table, field){
-    	return this.asyncLocalStorage.getItem(this.storageKey)
-    	.then((jsonString) =>{
-    		let appData =  JSON.parse(jsonString);
-    		delete appData.strTables[table.id].fields[field.id];
-    		return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify(appData)); 
-    	});
+        return Promise.resolve().then( () => {
+	    	logger.debug("deleteField was called with field " + JSON.stringify(field))
+	      	const jsonString = localStorage.getItem(this.storageKey)
+			const appData =  JSON.parse(jsonString);
+			
+			delete appData.strTables[table.id].fields[field.id];
+	
+			localStorage.setItem(this.storageKey, JSON.stringify(appData)); 
+        });
     };
     
     /**
@@ -227,17 +229,19 @@ class Storage{
      * @return A Promise that is resolved when the zoom factor was updated.
      */
     updateZoom(zoom){
-    	return this.asyncLocalStorage.getItem(this.storageKey)
-    	.then((jsonString) =>{
-    		let appData =  JSON.parse(jsonString);
-    		appData.zoom = zoom;
-    		return this.asyncLocalStorage.setItem(this.storageKey, JSON.stringify(appData)); 
-    	});
-    	
+        return Promise.resolve().then( () => {
+	      	const jsonString = localStorage.getItem(this.storageKey)
+			const appData =  JSON.parse(jsonString);
+			
+			appData.zoom = zoom;
+			
+			localStorage.setItem(this.storageKey, JSON.stringify(appData)); 
+        });
     };
     
     /**
      * Generates a unique Id for a table or a field.
+	 * Note that the id of a field is only unique within a table!
      * @param tables The existing tables
      * @param object A table or a field that needs a unique id.
      * @return A unique Id for a table or a field.

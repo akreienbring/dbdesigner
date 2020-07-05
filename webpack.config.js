@@ -7,9 +7,9 @@ module.exports = {
   devtool: 'source-map',
   entry: './src/index.js',
   output: {
-    filename: 'vialch.js',
+    filename: 'dbdesigner.js',
     path: path.resolve(__dirname, 'dist'),
-    publicPath: "/VisualAlchemist/dist/",
+    publicPath: "/DBDesigner/dist/",
   },
   module: {
 	  rules: [
@@ -20,7 +20,7 @@ module.exports = {
 				  'css-loader',
 			  ],
 		  },
-		  {
+/*		  {
 			  test: /\.(woff|woff2|eot|ttf|otf|svg)$/,
 			  use: [
 				  'file-loader',
@@ -32,7 +32,7 @@ module.exports = {
 				  'file-loader',
 			  ],
 		  },
-		  {
+*/		  {
 			  test: /\.s[a|c]ss$/,
 	          use: [
 	        	  isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
@@ -55,8 +55,7 @@ module.exports = {
   },
  plugins: [
 	    new webpack.ProvidePlugin({
-	    	Popper: 'popper.js',
-	    	moment: 'moment',
+	    	moment: 'moment'
 	    }),
 	    
 	    new MiniCssExtractPlugin({

@@ -72,29 +72,31 @@ class Field{
 	
 	/**
 	 * Takes an object with the properties of an existing field and copies the properties to the instance
+	 * Properties which are undefined in the given field are left as they are.
 	 * @param field A object of the type field
 	 */
 	updateFromObject(field){
-		if (field.tableId) this.tableId = field.tableId;
-		if (field.name) this.name = field.name;
-		if (field.id) this.id = field.id;
-		if (field.type) this.type = field.type;
-		if (field.size) this.size = field.size;
-		if (field.unique) this.unique = field.unique;
-		if (field.primaryKey) this.primaryKey = field.primaryKey;
-		if (field.notNull) this.notNull = field.notNull;
-		if (field.defaultValue) this.defaultValue = field.defaultValue;
-		if (field.pkRef) this.pkRef = field.pkRef; // this one is currently unused
+		if (field.tableId != undefined) this.tableId = field.tableId;
+		if (field.name != undefined) this.name = field.name;
+		if (field.id != undefined) this.id = field.id;
+		if (field.type != undefined) this.type = field.type;
+		if (field.size != undefined) this.size = field.size;
+		if (field.unique != undefined) this.unique = field.unique;
+		if (field.primaryKey != undefined) this.primaryKey = field.primaryKey;
+		if (field.notNull != undefined) this.notNull = field.notNull;
+		if (field.defaultValue != undefined) this.defaultValue = field.defaultValue;
+		if (field.pkRef != undefined) this.pkRef = field.pkRef;
 		//TODO: Remember to add any new attributes here, so canvas loads properly.
 	};
 	
     /** Get a list of all fields that reference this (primary) field. Note: this should only work for primary keys.
-     * @param tableName The name of the table this field belongs to.
-     * @return An array with all of the fields that reference to a private key. Every entry has the form "{tableName: tableName, fieldName: fieldName"}
+     * @return An array with all of the fields that reference to a private key. Every entry has the form "{tableId: tableId, fieldId: fieldId"}
      */
-	getReferencers(tableId) {
+	getReferencers() {
+		if (!this.primaryKey) return [];
+		
 		const result = [];
-		const thisField = tableId + "." + this.id;
+		const thisField = this.tableId + "." + this.id;
 
 		jQuery.each(dbdesigner.tables, function(tableId,table) {
 			jQuery.each(table.fields, function(fieldId,field) {
@@ -106,6 +108,24 @@ class Field{
 		
 		return result;
 	};
+	
+	/**
+	 * Compares this field with the given field
+	 * ATTENTION: If a property is missing the fields are considered to be different. 
+	 * Currently tableId and pkRef are NOT compared (It's not needed when a field was edited)
+	 * @param field The field that will be compared with this field
+	 * @return true if the field have the same properties else false
+	 */
+	isEqualWith(field){
+		if(field.name != this.name) return false;
+		if(field.type != this.type) return false;
+		if(field.size != this.size) return false;
+		if(field.unique != this.unique) return false;
+		if(field.primaryKey != this.primaryKey) return false;
+		if(field.notNull != this.notNull) return false;
+		if(field.defaultValue != this.defaultValue) return false;
+		return true;
+	}
 	
 	/**
 	 * Override toJSON so that the endpoints aren't included (which would lead to circular reference error and larger JSON)

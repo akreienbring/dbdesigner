@@ -149,32 +149,37 @@ class MySQL{
     }
     
     generateFKConstraint (sourceTableName, sourceTableFields, targetTableName, targetTableFields) {
-    	return "alter table " + sourceTableName + " add constraint fk_" + sourceTableName +  "_" + sourceTableFields 
+    	return "alter table " + sourceTableName + " add constraint fk_" + sourceTableName +  "_" + targetTableName 
     			+  " foreign key (" + sourceTableFields +  ") references " + targetTableName +  "(" + targetTableFields  + ");"
     }    
     
     generateCode(){
 		let code = '';
 		let constraints = [];
-		jQuery.each(dbdesigner.tables, function(tableId, table) {
+
+		jQuery.each(dbdesigner.tables, (tableId, table) => {
+			logger.info("Generating Code for Table " + table.name);
+			
 			code += "create table " + table.name + "\n(\n";
 			
 			const primaryFields = [];
 			let primaryCount = 0;
+			let targetTable;
+			let targetField;
 			
-			// Collect number and names of primary key fields
+			// Collect number and names of primary key and referenced fields
 			jQuery.each(table.fields, function(fieldId, field) {
 				if (field.primaryKey) {
 					primaryFields.push(field.name);
 					primaryCount += 1;
-				}
+				};
 			});
 			
 			let fieldCode = [];
-			let targetTable;
-			let targetField;
+			let referencedTables = [];
 			
-			jQuery.each(table.fields, function(fieldId, field)
+			//generate the table and field dfinitions
+			jQuery.each(table.fields, (fieldId, field) =>
 			{
 				if (field.type=='Text' || field.type=='String') {
 					//embed quotes if they don't already exist
@@ -194,20 +199,88 @@ class MySQL{
 				+ (field.notNull ? " not null" : "")
 				+ (field.primaryKey && primaryCount == 1 ? " primary key" : "")
 				+ (field.unique ? " unique" : "")
-				+ (field.defaultValue!=null ? " default " + field.defaultValue  : ""));
+				+ (field.defaultValue != null ? " default " + field.defaultValue  : ""));
 				
-				// If this field has any references to other fields 
-				if (field.pkRef!=null) 
+				if (field.pkRef != null) 
 				{
-					// add any constraints placed by raw formats like mysql and postgres.
-					// save constraints in an array (they are added after all tables have been created)
+					
 					targetTable = dbdesigner.tables[field.pkRef.split(".")[0]];
 					targetField = targetTable.fields[field.pkRef.split(".")[1]];
-					constraints.push(this.generateFKConstraint(table.name, field.name, targetTable.name, targetField.name));
-				}
-			}.bind(this));
+					
+					//push to generate composite references later
+					logger.debug("Pushing [" + targetTable.name+ "." + targetField.name + "," + table.name + "." + field.name +"] to referencedTables");
+					referencedTables.push([targetTable.name+ "." + targetField.name, table.name + "." + field.name]);
+				};
+				
+			}); //for each field
 			
+			//now generate the constraints with respect to composite keys
+			let targetTableName;
+			let targetFieldName;
+			let sourceTableName;
+			let sourceFieldName;
+			let sourceTableFields = "";
+			let targetTableFields = "";
+			let lastReferencedTable = "";
+			let constraint = "";
 			
+			//sort the array to have references to the same table in sequence
+			if(referencedTables.length > 0){
+				referencedTables.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+				logger.debug("sorted referencedTables = " + JSON.stringify(referencedTables));
+				
+				targetTableName = referencedTables[0][0].split(".")[0];
+				targetFieldName = referencedTables[0][0].split(".")[1];
+				sourceTableName = referencedTables[0][1].split(".")[0];
+				sourceFieldName = referencedTables[0][1].split(".")[1];
+				
+				targetTableFields = targetFieldName;
+				sourceTableFields = sourceFieldName;
+				
+				lastReferencedTable = targetTableName;
+			}; 
+			
+			for (let i=1; i < referencedTables.length; i++){
+				
+				if (referencedTables[i][0].split(".")[0] == lastReferencedTable && referencedTables.length > 1){
+				}else{
+					if (targetTableFields == "") targetTableFields = targetFieldName;
+					if (sourceTableFields == "") sourceTableFields = sourceFieldName;
+					
+					// add any constraints placed by raw formats like mysql and postgres.
+					// save constraints in an array (they are added after all tables have been created)
+					constraint = this.generateFKConstraint(sourceTableName, sourceTableFields, targetTableName, targetTableFields);
+					
+					logger.debug("Adding constraint: " + constraint);
+					constraints.push(constraint);
+					targetTableFields = "";
+					sourceTableFields = "";
+				};
+				
+				targetTableName = referencedTables[i][0].split(".")[0];
+				targetFieldName = referencedTables[i][0].split(".")[1];
+				sourceTableName = referencedTables[i][1].split(".")[0];
+				sourceFieldName = referencedTables[i][1].split(".")[1];
+				
+				if (targetTableFields != ""){
+					targetTableFields += ", " + targetFieldName;
+					sourceTableFields += ", " + sourceFieldName;
+				}else{
+					targetTableFields = targetFieldName;
+					sourceTableFields = sourceFieldName;
+				};
+				
+				lastReferencedTable = targetTableName;
+			};
+			
+			if (targetTableFields != ""){
+				// add any constraints placed by raw formats like mysql and postgres.
+				// save constraints in an array (they are added after all tables have been created)
+				constraint = this.generateFKConstraint(sourceTableName, sourceTableFields, targetTableName, targetTableFields);
+				logger.debug("Adding constraint: " + constraint);
+				constraints.push(constraint);
+			};
+				
 			// Add multi-field primary key if needed
 			if (primaryCount > 1) {
 				fieldCode.push("\tprimary key (" + primaryFields.join(', ') + ")");
@@ -222,7 +295,7 @@ class MySQL{
 			// Add all the lines for declaring fields, primary keys, and FKs (if needed)
 			code += fieldCode.join(",\n")+"\n);\n";
 			
-		}.bind(this));
+		}); //for each table
 
 		// If foreign keys have to come after everything else, add them here
 		if (this.deferForeignKeys) {

@@ -1,6 +1,6 @@
 $isStandAlone: true;
 $isDevelopment: true;
-$wrapper: ".vialch"; /*apply with #{$wrapper} */
+$wrapper: ".dbdesigner"; /*apply with #{$wrapper} */
 
 body {
 	@if ($isStandAlone) { 
@@ -20,7 +20,6 @@ body {
 		font-size: 0.8em;
 	}
 	
-
 	/*Overwriting Bootstrap classes BEGIN*/
 	.nav-item{
 		font-size: 0.9em;
@@ -32,7 +31,8 @@ body {
 	/*Overwriting Bootstrap classes END*/
 
 	#theCanvas {
-		background-color: rgba(14, 63, 56, 0.56);
+		/*background-color: rgba(14, 63, 56, 0.56);*/
+		background-color: rgb(102, 159, 152);
 		position: relative;
 		flex-grow: 1;
 		min-width: 4800px;
@@ -59,6 +59,36 @@ body {
 	.tableDesign {
 		font-size: 0.8em;
 		border-radius: 0px;
+		border-collapse: collapse;
+	}
+	
+	.tableDesign .anchor{
+		width: 22px; 
+	}
+	
+	.tableDesign .roControl{
+		padding: 0px; 
+		margin: 0px;
+		overflow: hidden;
+		cursor: pointer;	
+	}
+	
+	.popoverText{
+		cursor: pointer;
+	}
+	
+	.tableDesign .fieldInfo{
+		padding-left: 5px; 
+		padding-right: 5px; 
+		padding-top: 2px; 
+		padding-bottom: 2px;
+		vertical-align: middle; 
+	}
+	
+	/*Fixed width! Important for stable anchors*/
+	.tableDesign .fieldName{
+		min-width: 120px; 
+		max-width: 120px; 
 	}
 	
 	.btn-file {
@@ -84,21 +114,35 @@ body {
 	
 	/*Kill the responsiveness of the TableDialog for the sake of scrollbars*/
 	.tableDialog {
-		width: 560px; 
-		max-width: 560px!important; 
-		min-width: 560px!important; 	
+		width: 600px; 
+		max-width: 600px!important; 
+		min-width: 600px!important; 	
 	}
 	
 	#tableDialog {
 		overflow: hidden;
 	}
 	
+	/* Input fields in table dialog */
+	#tableDialog .input-table-name{
+	    width: 380px;
+		font-size: 1.0em;
+		margin-left: 30px;
+	}
+
+	#tableDialog .input-field-name{
+	    width: 332px;
+	}
+	
+	#tableDialog .field-input{
+	    width: 100px;
+	}
+	
+	/*The table in tableDialog with scrollbars*/
 	#tableDialogTable {
 	    display: flex;
 	    flex-flow: column;
-	    overflow-y: auto;
-	    overflow-x: hidden;
-	    width: 500px;
+	    width: 540px;
 		table-layout: fixed;
 	}
 	
@@ -106,8 +150,8 @@ body {
 		flex: 0 0 auto;
 		width: inherit;
 		height: 23px;
-		position: fixed;
 		background-color: white;
+		position: fixed;
 		@if not ($isStandAlone) { 
 			z-index: 1;
 		}
@@ -119,9 +163,16 @@ body {
 		height: 107px;
 		width: inherit;
 		margin-top: 23px;
+	    overflow-y: auto;
+	    overflow-x: hidden;
 	}
 	
-	#tableDialogTable tr {
+	#tableDialogTable thead tr {
+	    display: table;
+		width: calc(100% - 17px); /* because the tbody has the scrollbar */
+	}
+		
+	#tableDialogTable tbody tr {
 	    display: table;
 		width: 100%;
 	}
@@ -134,27 +185,36 @@ body {
 	}
 	
 	#tableDialogTable .fieldName{
-		width: 17%;
+		min-width: 135px;
+		max-width: 135px;
 	}
-	
 	#tableDialogTable .fieldType{
-		width: 14%;
+		min-width: 50px;
+		max-width: 50px;
 	}
 
 	#tableDialogTable .fieldSize{
-		width: 7%;
+		min-width: 45px;
+		max-width: 45px;
 	}
 
-	#tableDialogTable .fieldDetails{
-		width: 43%;
+	#tableDialogTable .fieldDefault{
+		min-width: 65px;
+		max-width: 65px;
+	}
+	
+	#tableDialogTable .fieldAttributes{
+		min-width: 95px;
+		max-width: 95px;
 	}
 	
 	#tableDialogTable .fieldAction{
-	    text-align: center; 
 		display: block;
-		margin: auto;	
+		min-width: 70px;
+		max-width: 70px;
 	}
 	
+	/*jsPlumb*/
 	.jtk-drag-select {
 	  -webkit-touch-callout: none;
 	  -webkit-user-select: none;
@@ -179,6 +239,7 @@ body {
 	    cursor: default;
 	}
 	
+	/*Zoom Slider*/
 	.slidecontainer {
 	  width: 100px;
 	}
@@ -193,8 +254,18 @@ body {
 	  opacity: 0.7;
 	  -webkit-transition: .2s;
 	  transition: opacity .2s;
+	  cursor: ew-resize;
 	}
 	
+	.slider::-webkit-slider-thumb {
+	    -webkit-appearance: none;
+	    border: none;
+	    height: 16px;
+	    width: 16px;
+	    border-radius: 50%;
+	    background: rgb(102, 159, 152);
+	}
+		
 	.slider:hover {
 	  opacity: 1;
 	}
