@@ -107,4 +107,4 @@ DBDesigner is free and open source, and it always will be. It is licensed under 
 
 André Kreienbring
 
-Mar, 2020
+July, 2020
