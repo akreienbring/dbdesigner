@@ -26,7 +26,7 @@ import * as pjson from '../package.json';
  */
 jQuery(document).ready(function () {
 	//Construct the Interface with the context and the CSS namespace wrapper.
-	window.dbdesigner = new DBDesigner(document.URL + "src/", ".dbdesigner");
+	window.dbdesigner = new DBDesigner(document.URL + "/", ".dbdesigner");
 	window.dbdesigner.version = pjson.version;
 	window.dbdesigner.app.start();
 });

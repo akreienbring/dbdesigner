@@ -64,30 +64,26 @@ I beamed the version number to 2.1.0. because major code reorganization has been
 
 What to download for a minimal installation? 
 * Get the "dist" folder
-* Get the index.html and the startUp.js (the latter only if you want to use the express webserver.. see below)
-* From the "src" folder you'll need the "assets" and the "img" folder.
-* Grab the "src/lib" folder if you want  or get your preferred version of jQuery and Bootstrap and Popper. (Tested with 3.5.1 / 4.5.0 / 1.16.1)
-* All other software (javascript, css and external libs) are bundled in the dbdesigner.js that you'll find in the "dist" folder.
+* In the "dist/lib" folder you'll find jQuery and Bootstrap and Popper. (Tested with 3.5.1 / 4.5.0 / 1.16.1). You can replace them with your favorite versions.
+* All other software (javascript, css and external libs) are bundled in the dbdesigner.js that you'll also find in the "dist" folder.
 
 So the final structure of a minimal installation looks like this:
 ```
 DBDesigner
 |__index.html
 |__startUp.js
-|__dist
-   |__dbdesigner.js
-|__src
-   |__assets
-   |__img
-   |__lib
+|__dbdesigner.js
+|__assets
+|__img
+|__lib
 ```  
 
-You'll need a webserver of your choice to run the tool. However, I included a little Javascript "startUp.js" that uses express to get you started.
+You'll need a webserver of your choice to run the tool. However, I included a little Javascript "startUp.js" that uses express to get you started quickly.
 
 1. Install node.js (with npm) https://nodejs.org
-2. Go to your applicaton root (DBDesigner in the sample above)
+2. Go to your application root (DBDesigner in the sample above)
    - type `npm init` and follow the initialization procedure
-   - type `npm install --save express`
+   - type `npm install [--save] express`
 3. Run the server with `node startUp.js`
 4. Navigate your browser to `localhost:3000`
 
@@ -105,6 +101,6 @@ So far I tested with the current versions of Firefox, Chrome and Edge. And I can
 
 DBDesigner is free and open source, and it always will be. It is licensed under the [GPLv3](https://opensource.org/licenses/GPL-3.0).
 
-André Kreienbring
+Andrï¿½ Kreienbring
 
 July, 2020
