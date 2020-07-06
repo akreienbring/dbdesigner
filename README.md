@@ -64,7 +64,7 @@ I beamed the version number to 2.1.0. because major code reorganization has been
 
 What to download for a minimal installation? 
 * Get the "dist" folder
-* In the "dist/lib" folder you'll find jQuery and Bootstrap and Popper. (Tested with 3.5.1 / 4.5.0 / 1.16.1). You can replace them with your favorite versions.
+* In the "dist/lib" folder you'll find jQuery, Bootstrap and Popper. (Tested with 3.5.1 / 4.5.0 / 1.16.1). You can replace them with your favorite versions at your own risk.
 * All other software (javascript, css and external libs) are bundled in the dbdesigner.js that you'll also find in the "dist" folder.
 
 So the final structure of a minimal installation looks like this:
