@@ -82,7 +82,6 @@ You'll need a webserver of your choice to run the tool. However, I included a li
 
 1. Install node.js (with npm) https://nodejs.org
 2. Go to your application root (DBDesigner in the sample above)
-   - type `npm init` and follow the initialization procedure
    - type `npm install [--save] express`
 3. Run the server with `node startUp.js`
 4. Navigate your browser to `localhost:3000`
@@ -101,6 +100,6 @@ So far I tested with the current versions of Firefox, Chrome and Edge. And I can
 
 DBDesigner is free and open source, and it always will be. It is licensed under the [GPLv3](https://opensource.org/licenses/GPL-3.0).
 
-Andr� Kreienbring
+André Kreienbring
 
 July, 2020
