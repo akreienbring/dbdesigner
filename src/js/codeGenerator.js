@@ -16,44 +16,89 @@
 import {Logger} from "./js-log.js";
 import {utils} from "./utils.js";
 
-var logger = Logger.getClassLogger("codeGenerator");
+const logger = Logger.getClassLogger("codeGenerator");
 
-//var templateDir = "";
 
+/**
+*	Used to generate the code for various DB or ORM Systems.
+*	Every specific codegenerator is organized in it's on class.
+* 	This class holds methods which are common support utilities for all of them.	
+*/
 class CodeGenerator {
-	 constructor(context) {
-		this.templateDir = context + "assets/templates/";
-		this.codeGenerators = {"ORM/SQLAlchemy": new ORMSQLAlchemy(this.templateDir), "mysql": new MySQL(this.templateDir), "sqlite": new SQLite(this.templateDir)};
+	 constructor() {
+		this.codeGenerators = {
+			"ORM/SQLAlchemy": new ORMSQLAlchemy(),
+			"MySQL / PostgreSQL": new MySQL(),
+			"SQLite": new SQLite(),
+			"Liferay Service Builder": new LiferayServiceBuilder()
+		};
 	 };	
 	 
-	 generateCode(outputType) {
+	 /**
+	 * After a generator was selected, finally generates the code, inserts
+	 * it into the corresponding template and shows the result window.
+	 * @param outputType the selected code generator
+	 * @param additionalOptions may contain values set by the user in the code generator popup
+	 * 		that was created by showResultsDialog 
+	 */
+	 generateCode(outputType, additionalOptions) {
 
 		// Pick code generator based on desired output format
-		var selectedCodeGenerator = this.codeGenerators[outputType];
+		const selectedCodeGenerator = this.codeGenerators[outputType];
+		selectedCodeGenerator.options = additionalOptions;
 		
 		// Combine template with generated code then show the output
-		jQuery.get(selectedCodeGenerator.template, (data) => {
-			var code = selectedCodeGenerator.generateCode();
+		jQuery.get(dbdesigner.context + "assets/templates/" + selectedCodeGenerator.template, (data) => {
+			let code = selectedCodeGenerator.generateCode();
 			code = data.format({body: code, version: dbdesigner.version});
 			this.showResults(code);
 		});
 	 };
 	 
+	 /**
+	 * showResultsDialog is called when the user wants to generate code. 
+	 * In the popup the code generator is selected and code generation is started.
+	 * @see dbdesigner.showResultsDialog()
+	 */
 	 showResultsDialog(){
 		if (Object.keys(dbdesigner.tables).length==0) {
 			utils.bspopup("There should be at least one table");
 			return;
 		};
 		
+		//create the HTML object that will be evaluated by utils.bspopup. Most important part 
+		//is the call back function that is triggerd on change. If triggered it calls
+		//the handleOptionsRequest method of the corresponding generator.
+		const htmlObj = {};
+		htmlObj.elements = [{
+			result:"outputType", 
+			type:"select", 
+			text:"Select output format", 
+			list:Object.keys(this.codeGenerators),
+			onChange: function(event){
+				logger.debug("HTML Request for " + this.value + " received");
+		    	const $form = jQuery(this).closest("form")
+		    	
+				//clear the existing additional form fields and let the corresponding code generator handle it.
+		    	$form.find("#additionalOptions").remove();
+				codeGenerator.codeGenerators[this.value].handleOptionsRequest($form);
+			}
+		}];
+		
+		//open the popup with the select element that lets the user select a generator
+		//also a function is passed that is called if the user clicks the passed button.
+		//if the OK button is clicked the option values, that were injected by a generator, are
+		//available in the passed data element.
 		utils.bspopup({
 			title:"Code Generator",
-			type:"radiolist", 
-			text:"Select output format", 
-			list: Object.keys(this.codeGenerators),
+			type:"form",
+			htmlObj: htmlObj, 
 			button1: {text: "Ok", type: "btn-primary"},
-			success: (event) =>{
-				var outputType = event.value;
-				this.generateCode(outputType);
+			success: (data) => {
+				const outputType = data.outputType.value;
+				let additionalOptions = {};
+				if(data.additionalOptions) additionalOptions = data.additionalOptions;
+				this.generateCode(outputType, additionalOptions);
 			}
 		});
 	 };
@@ -70,7 +115,6 @@ class CodeGenerator {
 				
 				jQuery(dbdesigner.namespaceWrapper + "#resultsDialog").on('shown.bs.modal', function(e) {
 					logger.log("ResultsDialog is shown");
-					//prettyPrint(); Is this really necessary?
 				});
 				
 				this.showResults(code);
@@ -88,18 +132,99 @@ class CodeGenerator {
 }; //class CodeGenerator
 
 /**
- * ORMSQLAlchemy is an internal code Generator 
- * 
- * @param templateDir the directory where the templates are located
- * @return The created code.
- * */
-class ORMSQLAlchemy{
-    constructor(templateDir) {
-    	this.template = templateDir+"sqlalchemy.py";
-    }
+ * LiferayServiceBuilder is a code generator that creates the service.xml code.
+ * This xml can be used by Liferay developers to create service interfaces and an object relational mapping. 
+ */
+class LiferayServiceBuilder{
+    constructor() {
+    	this.template = "service.tpl";
+    	this.rawTypes = {"Text": "String", "Integer": "int","Float": "float", "Date": "Date", "DateTime": "Date"};
+    	//create generator specific options, that will be set CodeGenerator.generateCode()
+    	//these are also used as defaults
+    	this.options = {datasource:"indi-smart", datasourcetype:"external"};
+     }
     
+	/**
+	 * Implement this method, if there are additional options that the code generator needs to generate the code
+	 * This is a required interface method as it will be called by Codegenerator.showResultsDialog()
+	 * Mark the elements with the class "additionalOption" to have there options returned to the generator.
+	 * @param $form The (currently) visible popup where input elements for the options need to be inserted.
+	 * @see CodeGenerator.showResultsDialog()
+	 */
+    handleOptionsRequest($form){
+    	const optionsHTML = `<div id="additionalOptions">
+    						<hr class="separator">
+    						<p class="messageText">Please pass the following options:</p>
+    						<input id="datasource" class="additionalOption form-control form-control-sm" type="text" placeholder="Data Source Name" value="${this.options.datasource}" maxlength="20"></input>
+    						<select id="datasourcetype" class="additionalOption form-control form-control-sm">
+    							<option value="external">External</option>"
+    							<option value="internal">Internal</option>"
+    						</div>
+    						`
+    	$form.append(optionsHTML);
+    };
+
+	/**
+	 * Creates the XML of the service.xml
+	 * This is a required interface method as it will be called by Codegenerator.generateCode()
+	 * @see CodeGenerator.generateCode()
+	 * @return The created XML.
+	 */
 	generateCode(){
-		var code = '';
+		logger.debug("Options are " + JSON.stringify(this.options));
+		
+		let code = "";
+		
+		let allHavePrimaryKeys = true;
+		jQuery.each(dbdesigner.tables, (tableId, table) => {
+			let tableHasPrimaryKey = false;
+			let externalTable = this.options.datasourcetype == "external" ? `table='${table.name}'` : "";
+			code += `\t<entity data-source='${this.options.datasource}' name='${table.name}' local-service='true' cache-enabled='false' remote-service='false' ${externalTable}>\n`;
+			
+			jQuery.each(table.fields, (fieldId, field) => {
+				tableHasPrimaryKey = tableHasPrimaryKey || field.primaryKey;
+				let externalColumn = this.options.datasourcetype == "external" ? `db-name='${field.name}'` : "";
+				code += `\t\t<column name='${field.name}' type='${this.rawTypes[field.type]}' ${externalColumn} ${field.primaryKey ? 'primary=\'true\'' : ''}/>\n`;
+			});
+			
+			allHavePrimaryKeys	= allHavePrimaryKeys && tableHasPrimaryKey;
+			code += "\t</entity>\n";
+		});
+		
+		if(!allHavePrimaryKeys) utils.bsalert({text:"Liferay requires that all entities have a primary key.",type:"danger", delay: 0});
+
+		return code;
+	}
+};
+
+/**
+ * ORMSQLAlchemy is an Python code Generator 
+ */
+class ORMSQLAlchemy{
+    constructor() {
+    	this.template = "sqlalchemy.py";
+     	this.options = {};
+     }
+    
+	/**
+	 * Implement this method, if there are additional options that the code generator needs to generate the code
+	 * This is a required interface method as it will be called by Codegenerator.showResultsDialog()
+	 * Mark the elements with the class "additionalOption" to have there options returned to the generator.
+	 * @param $form The (currently) visible popup where input elements for the options need to be inserted.
+	 * @see CodeGenerator.showResultsDialog()
+	 */
+    handleOptionsRequest($form){
+    	//noop
+    };
+    
+	/**
+	 * Creates Python code 
+	 * This is a required interface method as it will be called by Codegenerator.generateCode()
+	 * @see CodeGenerator.generateCode()
+	 * @return The created Python code.
+	 */
+	generateCode(){
+		let code = '';
 		
 		 jQuery.each(dbdesigner.tables, function(tableId, table) {
 			code += "class " + table.name + "(Base):\n";
@@ -135,24 +260,47 @@ class ORMSQLAlchemy{
 };
 
 /**
- * MySQL is an internal code Generator 
- * 
- * @param templateDir the directory where the templates are located
- * @return The created code.
- * 
+ * MySQL is an internal SQL Generator. The generated SQL work also with PostgresSQL and probably MariaDB 
  */
 class MySQL{
-    constructor(templateDir) {
-    	this.template = templateDir+"mysql.sql";
+    constructor() {
+    	this.template = "mysql.sql";
     	this.rawTypes = {"Text": "varchar", "Integer": "int","Float": "float", "Date": "date", "DateTime": "datetime"};
     	this.deferForeignKeys = true; // Add foreign key constraint after running CREATE TABLE statement?
+    	this.options = {};
     }
     
+	/**
+	 * Implement this method, if there are additional options that the code generator needs to generate the code
+	 * This is a required interface method as it will be called by Codegenerator.showResultsDialog()
+	 * Mark the elements with the class "additionalOption" to have there options returned to the generator.
+	 * @param $form The (currently) visible popup where input elements for the options need to be inserted.
+	 * @see CodeGenerator.showResultsDialog()
+	 */
+    handleOptionsRequest($form){
+    	//noop
+    };
+    
+	/**
+	 * Creates a primary / foreign key relation between two tables
+	 * @param sourceTableName The table that is referenced by a primary key from another table
+	 * @param sourceTableField The fields which are refrences by primary key fields in another table
+	 * @param targetTableName The table that has the primary keys which are referencing the source table
+	 * @param targetTableFields The primary field(s) in in the target table that are referencing the source table
+	 * @return The alter table statement to create the primary / foreign key relation.
+	 '
+	 */
     generateFKConstraint (sourceTableName, sourceTableFields, targetTableName, targetTableFields) {
     	return "alter table " + sourceTableName + " add constraint fk_" + sourceTableName +  "_" + targetTableName 
     			+  " foreign key (" + sourceTableFields +  ") references " + targetTableName +  "(" + targetTableFields  + ");"
     }    
     
+	/**
+	 * Creates the SQL for MySQL / PostgreSQL
+	 * This is a required interface method as it will be called by Codegenerator.generateCode()
+	 * @see CodeGenerator.generateCode()
+	 * @return The created SQL.
+	 */
     generateCode(){
 		let code = '';
 		let constraints = [];
@@ -247,7 +395,7 @@ class MySQL{
 					if (targetTableFields == "") targetTableFields = targetFieldName;
 					if (sourceTableFields == "") sourceTableFields = sourceFieldName;
 					
-					// add any constraints placed by raw formats like mysql and postgres.
+					// add any constraints placed by raw formats like MySQL and PostgreSQL.
 					// save constraints in an array (they are added after all tables have been created)
 					constraint = this.generateFKConstraint(sourceTableName, sourceTableFields, targetTableName, targetTableFields);
 					
@@ -273,8 +421,9 @@ class MySQL{
 				lastReferencedTable = targetTableName;
 			};
 			
+			//add the remaining constraints
 			if (targetTableFields != ""){
-				// add any constraints placed by raw formats like mysql and postgres.
+				// add any constraints placed by raw formats like MySQL and PostgreSQL.
 				// save constraints in an array (they are added after all tables have been created)
 				constraint = this.generateFKConstraint(sourceTableName, sourceTableFields, targetTableName, targetTableFields);
 				logger.debug("Adding constraint: " + constraint);
@@ -311,25 +460,42 @@ class MySQL{
  * SQLite inherits from MySQL. It's mostly the same syntax, the only difference is that
  * MySQL doesn't support ALTER TABLE ADD CONSTRAINT FOREIGN KEY, so FKs have to be added
  * as part of the CREATE TABLE statement. 
- * 
- * @param templateDir the directory where the templates are located
- * @return The created code.
- * 
  */
 class SQLite extends MySQL{
-	constructor(templateDir){
+	constructor(){
 		
-		super(templateDir);
-		
-		this.template = templateDir + "sqlite.sql";
+		super();
+		this.template = "sqlite.sql";
 		
 		// Add foreign key constraint after running CREATE TABLE statement?
 		this.deferForeignKeys = false;
+		this.options = {};
 	}
 	
+	/**
+	 * Implement this method, if there are additional options that the code generator needs to generate the code
+	 * This is a required interface method as it will be called by Codegenerator.showResultsDialog()
+	 * Mark the elements with the class "additionalOption" to have there options returned to the generator.
+	 * @param $form The (currently) visible popup where input elements for the options need to be inserted.
+	 * @see CodeGenerator.showResultsDialog()
+	 */
+    handleOptionsRequest($form){
+    	//noop
+    };
+    
+	/**
+	 * Creates a primary / foreign key relation between two tables
+	 * @param sourceTableName The table that is referenced by a primary key from another table
+	 * @param sourceTableField The fields which are refrences by primary key fields in another table
+	 * @param targetTableName The table that has the primary keys which are referencing the source table
+	 * @param targetTableFields The primary field(s) in in the target table that are referencing the source table
+	 * @return The alter table statement to create the primary / foreign key relation.
+	 '
+	 */
 	generateFKConstraint(firstTableName, firstTableFields, secondTableName, secondTableFields) {
 		return "\tforeign key (" + firstTableFields +  ") references " + secondTableName +  "(" + secondTableFields  + ")"
 	}
 }; 
 
-export {CodeGenerator};
+const codeGenerator = new CodeGenerator();
+export {codeGenerator};

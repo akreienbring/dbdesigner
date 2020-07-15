@@ -14,7 +14,7 @@
 
 import {app} from "./app.js";
 import {tableDialog} from "./tableDialog.js";
-import {CodeGenerator} from "./codeGenerator.js";
+import {codeGenerator} from "./codeGenerator.js";
 import {utils} from "./utils.js";
 import {Logger} from "./js-log.js";
 
@@ -31,7 +31,7 @@ class DBDesigner{
      	this.version;
     	this.context = context;
     	this.namespaceWrapper = namespaceWrapper + " ";
-    	this.codeGenerator = new CodeGenerator(this.context);
+    	this.codeGenerator = codeGenerator;
     	this.app = app;
     };
 

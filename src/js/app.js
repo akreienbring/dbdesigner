@@ -454,8 +454,8 @@ class App {
 		dbdesigner.tables  = {};
 		
 		// Clear out the copy stored in storage
-		//storage.remove(true)  ACTIVATE FOR Testing when an other storage then local storage is used.
-		storage.remove();
+		storage.remove(true);  //ACTIVATE FOR Testing or when an other storage then local storage is used.
+		//storage.remove();
 	};
 	
 	/**

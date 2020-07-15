@@ -9,5 +9,7 @@
 /src/json
 /src/js/liferayStorageV1.0.js
 /src/js/liferayStorageV2.0.js
-/src/js/js-log.js
 
+/dist/node_modules
+/dist/package.json
+/dist/package-lock.json

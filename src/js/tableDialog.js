@@ -343,7 +343,7 @@ class TableDialog {
 			});
 		};
 		
-		jQuery(dbdesigner.namespaceWrapper + "#tableDialog").modal('hide');
+		jQuery(dbdesigner.namespaceWrapper + "#tableDialog").modal("hide");
 		
 		if (editMode == "add") {
 			// a new Table is created and stored together with it's fields

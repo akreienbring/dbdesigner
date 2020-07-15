@@ -1,5 +1,5 @@
 {
-  "name": "DBDesigner",
+  "name": "dbdesigner",
   "version": "2.1.0",
   "description": "A HTML and Javascript Based Database ERD Tool",
   "private": false,

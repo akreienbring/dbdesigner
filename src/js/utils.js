@@ -19,7 +19,6 @@ import {Logger} from "./js-log.js";
 
 const logger = Logger.getClassLogger("Utils");
 const COOKIE_ENCODER = '{|}~';
-
 class Utils{
 	/**
 	 * Whatever options where passed to bspopup. Here we make sure that these are a valid object for bspopup
@@ -27,7 +26,7 @@ class Utils{
 	 */
 	bsoptions(options){
 		if (typeof(options)=='string'){
-	        options = {type: "text",text: options};
+	        options = {type:"text", text:options};
 		};
 	    if (options==undefined) options={};
 		if (options.type==undefined) options.type='text';
@@ -43,14 +42,14 @@ class Utils{
 	 * 
 	 * The option object can contain up to two custom buttons named "button1" and "button2".
 	 * IMPORTANT: If button2 is given, this has to be the close button!
-	 * button1 fires an event that can be evaluated by the caller.
-	 * @see dbdesigner.eraseCanvasState, dbdesigner.deleteTable, showResultsDialog in codeGenerator
+	 * button1 calls the success function that is provided by the caller.
+	 * @see dbdesigner.eraseCanvasState, dbdesigner.deleteTable, codeGenerator.showResultsDialog
 	 */
 	bspopup(options){
-		logger.log("BsPopup is starting");
+		logger.debug("BsPopup is starting");
 		if (jQuery(dbdesigner.namespaceWrapper + "#popupBox").length == 0) {
 			jQuery(dbdesigner.namespaceWrapper + "#popupHolder").load(dbdesigner.context + "assets/partials/bootui.html", (data, success, dataType) => {
-				logger.log("LOADED THE popup Dialog!");
+				logger.debug("LOADED THE popup Dialog!");
 				
 	            this.bspopup(options); //recursive call if not loaded before
 	        });
@@ -64,46 +63,48 @@ class Utils{
 		const text = options.text;
 		const type = options.type;
 		const title = options.title;
-		let ev = {};
 		
-	    let proto = "";
-	    if (type=="text") {
-	        proto = "Generic";
-	    }
-	    else if (type=="input" || type=="radiolist") {
-	        proto = "Input";
-	    }
-	    else if (type=="about") {
-			proto = "About";
-		}
-	    else if (type=="stack") {
-	        proto = "Stack"
-	    };
-	        
-	    
+	    //theBox is the DIV that's placed in the DOM when a popup is created (@see bootui.html)
 	    const $theBox = jQuery(dbdesigner.namespaceWrapper + "#popupBox");
 	    $theBox.find(".modal-title").text(title);
 	    
-		const $contentDiv = $theBox.find("#popupBox" + proto);
+		//contentDiv is a DIV in theBox with a special purpose
+		const $contentDiv = $theBox.find("#popupBox" + type.toUpperCase());
 		$contentDiv.removeClass("d-none");
 		
-		logger.log("Showing PopUpBox with content #popupBox" +proto);
+		logger.debug("Showing PopUpBox with content #popupBox" + type.toUpperCase());
 	    
-		// Insert HTML in to the box based on popup box type
-	    if (type=='radiolist') {
-	    	$contentDiv.find(".messageText").text(text);
-	    	$contentDiv.find("#txtInput").remove();
-	        let html = "<select id='select1' class='form-control form-control-sm'>";
-	        for(let i=0;i<options.list.length;i++) {
-	            html += "<option value='" + options.list[i] + "'>" + options.list[i] +  "</option>";
-	        }
-	        html += "</select>";
-	        $contentDiv.find("form").append(html);
+		// Insert HTML into the box based on popup box type
+	    if (type=="form") {
+	    	if(options.htmlObj){
+	    		//the HTML Object may contain elements that need to be created in the box.
+	    		//if a event function is passed it is registered on the element.
+	    		
+	    		let html = "";
+	    		const elements = options.htmlObj.elements;
+	    		for(let i=0; i < elements.length; i++){
+	    			$contentDiv.find(".messageText").text(elements[i].text);
+	    			
+	    			if(elements[i].type == "select"){
+				        html = `<select id='dynamicElement${i}' class='form-control form-control-sm'>`;
+				        for(let j=0; j < elements[i].list.length; j++) {
+				            html += "<option value='" + elements[i].list[j] + "'>" + elements[i].list[j] +  "</option>";
+				        }
+				        html += "</select>";
+	    			};
+	    			
+	    			$contentDiv.find("form").append(html);
+	    			
+	    			if(elements[i].onChange){
+	    				//register the function on the newly created element
+	    				//use event delegation because otherwise the event gets not fired!
+						$contentDiv.on("change", "#dynamicElement" + i, elements[i].onChange);
+						//directly trigger the first change, because we just created the element
+						$contentDiv.find("#dynamicElement" + i).change();
+	    			};
+	    		};
+	    	};
 	    }
-	    else if (type=="input") {
-	    	$contentDiv.find('#txtInput').get(0).placeholder = text;
-	    	$contentDiv.find(".messageText").text(text);
-		}
 	    else if (type=='text') 
 	    {
 	    	$contentDiv.find(".messageText").html(text.replace(/\n/g,'<br/>'));
@@ -113,47 +114,65 @@ class Utils{
 	    	$contentDiv.find(".year").text((new Date()).getFullYear());
 		};
 	    
-	    //if button1 was provided by the caller the user input is returned with an event 
-	    if (options.success != undefined && options.button1 != undefined) {
-            $theBox.find(".modal-footer").prepend("<button id='button1' class='btn " + options.button1.type + " btn-sm'  data-dismiss='modal'>" + options.button1.text + "</button>")
-	        $theBox.find("#button1").click(function() {
-	            ev = {};
-	            if (type=='input') {
-	                ev.value = $contentDiv.find("#txtInput").val(); 
-	            }else if (type=='radiolist') {
-	                ev.value = $contentDiv.find("#select1").val(); 
-	            }else{
-	            	ev.button = "button1";	
-	            };
-	            options.success(ev);
-	        });
-	    };
-        
 	    if (options.button2 != undefined) {
 		    //this is the close (without action) button. Just change the text 
         	$theBox.find("#btnClose").text(options.button2);
         };
 		
-		if (type=='text' || type=='input') {
-			// Focus the text box when it is first shown
-			$theBox.on('shown.bs.modal', function () {
-				$contentDiv.find('#txtInput').focus();
-			});
-		};
-
+	    if (options.success != undefined && options.button1 != undefined) {
+ 	    	//if button1 was provided by the caller then the success function is called.
+            $theBox.find(".modal-footer").prepend("<button id='button1' class='btn " + options.button1.type + " btn-sm'>" + options.button1.text + "</button>")
+	        
+	        $theBox.find("#button1").click(function() {
+            	const data = {};
+	            if (type=="form") {
+			    	//there a input elements in the form. First get the values of these elements and put it 
+			    	//into the data object.
+			    	if(options.htmlObj){
+			    		const elements = options.htmlObj.elements;
+			    		for(let i=0; i < elements.length; i++){
+			    			data[elements[i].result] = {};
+			    			const $dynamicElement = $contentDiv.find("#dynamicElement" + i);
+			    			if(elements[i].type == "select"){
+			    				data[elements[i].result].value = $dynamicElement.val(); 
+			    			}
+			    		};
+			    	};
+			    	
+			    	//next get any additions object that may have been injected into the popup (@see codegenerators as an example)
+			    	data["additionalOptions"] = {};
+			    	const $additionalOptions = $contentDiv.find(".additionalOption");
+			    	for(let i=0; i < $additionalOptions.length; i++){
+			    		let $additionalOption = jQuery($additionalOptions[i]);
+			    		data["additionalOptions"][$additionalOption.attr("id")] = $additionalOption.val();
+			    	};
+	            }else{
+	            	data.button = "button1";	
+	            };
+	            //now that all data is collected, close the popup modal and call the success function
+	            $theBox.modal("hide");
+	            options.success(data);
+	        });
+	    };
+	    
 	    $theBox.on("hidden.bs.modal", function(ev) {
 	    	//reset the content of the modal
+	    	if($contentDiv.find("form").length != 0){
+	    		//this is true for type form. IMPORTANT: unbind the event! Otherwise it will be fired more than once!
+	    		$contentDiv.off("change");
+	    		$contentDiv.find("form").empty();
+	    	};
 	    	$theBox.find("#btnClose").text("Close");
 	    	if($theBox.find("#button1").length != 0) $theBox.find("#button1").remove();
-	    	if($contentDiv.find("#select1").length != 0) $contentDiv.find("#select1").remove();
 	    	$contentDiv.addClass("d-none");
 	    });
 	    
+	    //after the content is prepared: show the popup
 	    $theBox.modal();
-	}; //bspopup
+ 	}; //bspopup
 	
 	/**
-	 * Shows a bootstrap alert that is closed after some time.
+	 * Shows a bootstrap alert 
 	 * @param obj an object like {text: "text to display, type: ["primary"|"secondary"|"success"|"danger"|"warning"|"info"|"light"|"dark"], title: "title text", delay: [time to fade out in millis]}
 	 * If a delay of 0 is passed, the alert will stay open. In this case there may be more then one alerts on the DOM
 	 */

@@ -12,9 +12,10 @@
 4. [Version 2.1.0](#version-210)
 5. [Screenshots](#screenshots)
 6. [For users](#for-users)
-7. [For developers](#for-developers)
-8. [Supported Browsers](#supported-browsers)
-9. [License](#license)
+7. [Liferay Service Builder](#liferay-service-builder)
+8. [For developers](#for-developers)
+9. [Supported Browsers](#supported-browsers)
+10. [License](#license)
 
 
 
@@ -53,6 +54,7 @@ I beamed the version number to 2.1.0. because major code reorganization has been
 - Added Datepicker for selecting Date / DateTime values.
 - A scrollable canvas for being able to create lots of tables.
 - Creation of composite foreign constraints
+- New Codegenerator: service.xml for Liferay Service Builder
 
 ## Screenshots
 
@@ -86,6 +88,10 @@ You'll need a webserver of your choice to run the tool. However, I included a li
 3. Run the server with `node startUp.js`
 4. Navigate your browser to `localhost:3000`
 
+### Liferay Service Builder
+
+Liferay Service Builder supports the generation of Object Relational Mapping (ORM, based on Hibernate) code in Liferay. The generated Entity-XML can be copied into the Liferay service.xml document.
+ 
 ## For developers
 
 As this software uses nodejs and webpack you'll have to install these tools. Do you see the "package.json" and the "webpack.config.js"?

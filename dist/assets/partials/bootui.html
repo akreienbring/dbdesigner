@@ -9,16 +9,17 @@
         </button>
       </div>
       <div class="modal-body">
-        <div id="popupBoxGeneric" class="d-none">
+        <!-- used for simple text messages in popups -->
+        <div id="popupBoxTEXT" class="d-none">
         	<p class="messageText">Default Message</p>
         </div>
-        <div id="popupBoxAbout" class="d-none">
+        <div id="popupBoxABOUT" class="d-none">
 	        <p style="text-align: center;"><img id="logo" class="img-fluid" style='border-radius:10px;  height: 100px; width:100px' src="img/information.svg"/></p>
 			<h5 style="margin:0px;">DBDesigner <span class='version'>1.0.0</span></h5>
 			<p class="messageText"><span>Open source, web-based, database diagramming and automation tool.</span></p>
 			<p class="messageText">License: GNU GPLv3</p>
         </div>
-        <div id="popupBoxStack" class="d-none">
+        <div id="popupBoxSTACK" class="d-none">
 		    <h5>DBDesigner Stack</h5>
 		    <p class="messageText">
 		    	jsPlumb 2.13.3 <br>
@@ -31,10 +32,10 @@
 	 	    	panzoom 4.1.0
 		    </p>
         </div>
-        <div id="popupBoxInput" class="d-none">
+        <!-- used in popup when input is requested from the user -->
+        <div id="popupBoxFORM" class="d-none">
 	        <p class="messageText">Default Message</p>
 	        <form>
-	        	<input id="txtInput" type="text" class="form-control form-control-sm">
 	        </form>
          </div>
       </div>
