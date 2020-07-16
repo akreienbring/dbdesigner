@@ -141,7 +141,7 @@ class LiferayServiceBuilder{
     	this.rawTypes = {"Text": "String", "Integer": "int","Float": "float", "Date": "Date", "DateTime": "Date"};
     	//create generator specific options, that will be set CodeGenerator.generateCode()
     	//these are also used as defaults
-    	this.options = {datasource:"indi-smart", datasourcetype:"external"};
+    	this.options = {datasource:"indi-smart", datasourcetype:"external", cache:"false"};
      }
     
 	/**
@@ -159,6 +159,11 @@ class LiferayServiceBuilder{
     						<select id="datasourcetype" class="additionalOption form-control form-control-sm">
     							<option value="external">External</option>"
     							<option value="internal">Internal</option>"
+    						</select>
+    						<select id="cache" class="additionalOption form-control form-control-sm">
+    							<option value="true">Cache enabled</option>"
+    							<option value="false" selected>Cache disabled</option>"
+    						</select>
     						</div>
     						`
     	$form.append(optionsHTML);
@@ -179,7 +184,8 @@ class LiferayServiceBuilder{
 		jQuery.each(dbdesigner.tables, (tableId, table) => {
 			let tableHasPrimaryKey = false;
 			let externalTable = this.options.datasourcetype == "external" ? `table='${table.name}'` : "";
-			code += `\t<entity data-source='${this.options.datasource}' name='${table.name}' local-service='true' cache-enabled='false' remote-service='false' ${externalTable}>\n`;
+			
+			code += `\t<entity data-source='${this.options.datasource}' name='${table.name}' local-service='true' cache-enabled='${this.options.cache}' remote-service='false' ${externalTable}>\n`;
 			
 			jQuery.each(table.fields, (fieldId, field) => {
 				tableHasPrimaryKey = tableHasPrimaryKey || field.primaryKey;
