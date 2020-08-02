@@ -43,7 +43,7 @@ class Utils{
 	 * The option object can contain up to two custom buttons named "button1" and "button2".
 	 * IMPORTANT: If button2 is given, this has to be the close button!
 	 * button1 calls the success function that is provided by the caller.
-	 * @see dbdesigner.eraseCanvasState, dbdesigner.deleteTable, codeGenerator.showResultsDialog
+	 * @see dbdesigner.eraseCanvasState, dbdesigner.deleteTable, codeGenerator.showCodeGeneratorDialog
 	 */
 	bspopup(options){
 		logger.debug("BsPopup is starting");
@@ -180,13 +180,17 @@ class Utils{
 		
 		const text = obj.text.replace(/\n/g,'<br/>');
 		const type = (obj.type == undefined ? "info" : obj.type);
-		const title = obj.title;
-		const delay = (obj.delay == undefined ? 2000 : obj.delay);//millis
+		let title = obj.title;
+		const delay = (obj.delay == undefined ? 2000 : obj.delay); //millis
+		
+		const titleText = {primary: "Information", secondary: "Information", success:"Success", danger: "Danger", warning: "Warning", info: "Information", light: "Minor", dark: "Severe"};
+
+		if (!title) title = titleText[type];
 		
 		//because there may be more then one alert, we need to assign a unique number.
 		const nid = jQuery(dbdesigner.namespaceWrapper + ".bsalert-plugin").length + 1;
 		const theWidth = "310px";
-		const html = '<div id="bsalertPlugin' + nid + '" style="z-index:2000;position:absolute;right:0;top:0;width:' + theWidth + ';" class="bsalert-plugin alert alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button><strong class="bsaTitle"></strong>&nbsp;<span class="bsaBody"></span></div>';
+		const html = '<div id="bsalertPlugin' + nid + '" style="z-index:2000;position:absolute;right:0;top:0;width:' + theWidth + ';" class="bsalert-plugin alert alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button><span class="bsaTitle"></span><br><span class="bsaBody"></span></div>';
 		
 		jQuery(dbdesigner.namespaceWrapper + "#popupHolder").prepend(html);
 		
@@ -201,7 +205,7 @@ class Utils{
 		
 		$theAlert.addClass('alert-' + type);
 		$theAlert.find(".bsaBody").html(text);
-		$theAlert.find(".bsaTitle").text(title);
+		$theAlert.find(".bsaTitle").html(title);
 
 		//show the alert. If it is closed it is removed from the DOM!
 		if (delay==0) {

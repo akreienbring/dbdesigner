@@ -18,7 +18,7 @@ import {Logger} from "./js-log.js";
 var logger = Logger.getClassLogger("ZoomIt");
 
 /**
- * Zoom covers the zooming functionality of the application.
+ * ZoomIt covers the zooming functionality of the application.
  * Currently it uses panzoom (https://github.com/timmywil/panzoom) for this purpose
  * @export The created zoom object.
  * */
@@ -45,6 +45,7 @@ class ZoomIt{
     makeTableZoomable(tableElement){
 		const panzoom = Panzoom(tableElement, {
 			disablePan: true,
+			noBind: true,
 			minScale: this.minScale,
 			maxScale: this.maxScale,
 			cursor: "auto",

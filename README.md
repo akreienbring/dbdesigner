@@ -9,7 +9,7 @@
 1. [Visual Alchemist reloaded](#visual-alchemist-reloaded)
 2. [What it is](#what-it-is)
 3. [Version 1.0.7](#version-107)
-4. [Version 2.1.0](#version-210)
+4. [Version 2.2.0](#version-220)
 5. [Screenshots](#screenshots)
 6. [For users](#for-users)
 7. [Liferay Service Builder](#liferay-service-builder)
@@ -43,9 +43,9 @@ The version number of Prahlads original repo is 1.0.7. Here are the features of 
 - Export the database as raw sql code (`mysql` dialect).
 - Export the database as raw sql code (`sqlite` dialect).
 
-## Version 2.1.0
+## Version 2.2.0
 
-I beamed the version number to 2.1.0. because major code reorganization has been done and the following (main) features were added:
+I beamed the version number to 2.2.0. because major code reorganization has been done and the following (main) features were added:
 
 - Renaming existing tables and fields.
 - Reorder columns
@@ -54,6 +54,8 @@ I beamed the version number to 2.1.0. because major code reorganization has been
 - Added Datepicker for selecting Date / DateTime values.
 - A scrollable canvas for being able to create lots of tables.
 - Creation of composite foreign constraints
+- Composite Unique keys
+- Auto-Increment
 - New Codegenerator: service.xml for Liferay Service Builder
 
 ## Screenshots
@@ -66,7 +68,7 @@ I beamed the version number to 2.1.0. because major code reorganization has been
 
 What to download for a minimal installation? 
 * Get the "dist" folder
-* In the "dist/lib" folder you'll find jQuery, Bootstrap and Popper. (Tested with 3.5.1 / 4.5.0 / 1.16.1). You can replace them with your favorite versions at your own risk.
+* In the "dist/lib" folder you'll find jQuery, Bootstrap and Popper. (Tested with 3.5.1 / 4.5.0 / 1.16.1-lts). You can replace them with your favorite versions at your own risk.
 * All other software (javascript, css and external libs) are bundled in the dbdesigner.js that you'll also find in the "dist" folder.
 
 So the final structure of a minimal installation looks like this:
@@ -97,6 +99,14 @@ Liferay Service Builder supports the generation of Object Relational Mapping (OR
 As this software uses nodejs and webpack you'll have to install these tools. Do you see the "package.json" and the "webpack.config.js"?
 If you're familiar with these, you'll have no problem to bundle the distribution after you changed code. 
 If not, hmm... it's definitely worth the time to get started with these frameworks.
+
+1. Clone or Fork the Repository
+2. Install node.js (with npm) https://nodejs.org
+3. Go to the Folder where the package.json resides
+   - type `npm install`
+5. Change the code as needed
+6. Package the distribution with `npm run webpack`
+7. Contributions are welcome! Just send a Pull Request :-)
 
 ## Supported Browsers
 

@@ -1,6 +1,6 @@
 {
   "name": "dbdesigner",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "A HTML and Javascript Based Database ERD Tool",
   "private": false,
   "scripts": {
@@ -11,19 +11,19 @@
   "author": "André Kreienbring",
   "license": "GPL-3.0-only",
   "devDependencies": {
-    "css-loader": "^3.6.0",
+    "css-loader": "^4.2.0",
     "file-loader": "^6.0.0",
     "mini-css-extract-plugin": "^0.9.0",
     "node-sass": "^4.14.1",
-    "sass-loader": "^9.0.1",
+    "sass-loader": "^9.0.2",
     "style-loader": "^1.2.1",
-    "webpack": "^4.43.0",
+    "webpack": "^4.44.1",
     "webpack-cli": "^3.3.12"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^5.13.1",
-    "@panzoom/panzoom": "^4.1.0",
-    "jsplumb": "^2.13.3",
+    "@fortawesome/fontawesome-free": "^5.14.0",
+    "@panzoom/panzoom": "^4.3.1",
+    "jsplumb": "^2.14.5",
     "moment": "^2.27.0",
     "tempusdominus-bootstrap-4": "^5.1.2"
   }

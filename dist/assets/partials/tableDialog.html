@@ -4,7 +4,7 @@
   <div class="modal-dialog mw-100 w-100 tableDialog" role="document">
     <div class="modal-content">
       <div class="modal-header" style="cursor:move">
-        <h5 id="tableDialogModalLabel" class="modal-title">Add Table</h5>
+        <h5 id="tableDialogModalLabel" class="modal-title ml-3">Add Table</h5>
         <input id="tableName" class="input-table-name form-control form-control-sm" type="text" placeholder="Table Name" autofocus="true" maxlength="30"></input>
        	<input id="tableId" type="hidden" value=""></input>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
@@ -25,6 +25,7 @@
 								<option value="Float">Float</option>
 								<option value="Date">Date</option>
 								<option value="DateTime">DateTime</option>
+								<option value="Serial">Serial (Integer)</option>
 							</select>
 					        <input id="fieldSize" class="input-field form-control form-control-sm mr-1" type="number" min="1" max="65535" placeholder="Size" value="255"></input>
 			 		        
@@ -38,23 +39,27 @@
 		              </div>
 		          </div>
 	              <div class="col-md-3">
-						<div class="form-check">
-							<input id="fieldPrimary" class="form-check-input" type="checkbox" value="primary">
-							<label class="form-check-label form-control-sm" for="fieldPrimary">Primary</label>
+						<div class="form-check py-0 my-0">
+							<input id="fieldPrimary" class="form-check-input" type="checkbox" value="primary" onclick="dbdesigner.attributeHasChanged()">
+							<label id="fieldPrimaryLabel" class="form-check-label attribute py-0 my-0 popoverText" for="fieldPrimary" data-toggle="popover">Primary</label>
 						</div>
-						<div class="form-check">
-							<input id="fieldUnique" class="form-check-input" type="checkbox" value="unique">
-							<label class="form-check-label form-control-sm" for="fieldUnique">Unique</label>
+						<div class="form-check py-0 my-0">
+							<input id="fieldUnique" class="form-check-input" type="checkbox" value="unique" onclick="dbdesigner.attributeHasChanged()">
+							<label id="fieldUniqueLabel" class="form-check-label attribute py-0 my-0 popoverText" for="fieldUnique" data-toggle="popover">Unique</label>
 						</div>
-						<div class="form-check">
-							<input id="fieldNotNull" class="form-check-input" type="checkbox" value="notnull">
-							<label class="form-check-label form-control-sm" for="fieldNotNull">Not Null</label>
+						<div class="form-check py-0 my-0">
+							<input id="fieldUniqueComposite" class="form-check-input" type="checkbox" value="uniquecomposite" onclick="dbdesigner.attributeHasChanged()">
+							<label id="fieldUniqueCompositeLabel" class="form-check-label attribute py-0 my-0 popoverText" for="fieldUniqueComposite" data-toggle="popover">Unique Composite</label>
+						</div>
+						<div class="form-check py-0 my-0">
+							<input id="fieldNotNull" class="form-check-input" type="checkbox" value="notnull" onclick="dbdesigner.attributeHasChanged()">
+							<label id="fieldNotNullLabel" class="form-check-label attribute py-0 my-0 popoverText" for="fieldNotNull" data-toggle="popover">Not Null</label>
 						</div>
 				  </div>
 			  </div>
 				
-	          <div class="form-row mt-1 ml-1">
-	          		<button id="addField" type="button" class="btn btn-sm btn-success" onclick="dbdesigner.addField()">Add Field</button>
+	          <div id="tableDialogAction" class="form-row mt-1 ml-1">
+	          		<button id="addField" type="button" class="btn btn-sm btn-success mr-1" onclick="dbdesigner.addField()">Add Field</button>
 			  </div>
 		    </form>
             <!-- Fixed header table-->

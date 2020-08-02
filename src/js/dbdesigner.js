@@ -59,15 +59,15 @@ class DBDesigner{
 	/*
 	 * Shows the code generation Dialog. Called from the Main Page
 	 */
-	showResultsDialog(){
-		this.codeGenerator.showResultsDialog();
+	showCodeGeneratorDialog(){
+		this.codeGenerator.showCodeGeneratorDialog();
 	};
 	
 	/*
 	 * Adds a field to a table. Called from the tableDialog HTML
 	 */
 	addField(){
-		tableDialog.addField();
+		tableDialog.addField(false);
 	};
 	
 	/**
@@ -96,6 +96,14 @@ class DBDesigner{
 	 */
 	typeHasChanged(){
 		tableDialog.typeHasChanged();
+	};
+	
+	/**
+	 * Called from the tableDialog if an attribute of a field has changed. Just a stub for tableDialog.attributeHasChanged.
+	 * @see tableDialog.attributeHasChanged()
+	 */
+	attributeHasChanged(){
+		tableDialog.attributeHasChanged();
 	};
 	
 	/*

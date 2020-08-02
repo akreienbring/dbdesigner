@@ -21,6 +21,7 @@ import {utils} from "./utils.js";
 import {Logger} from "./js-log.js";
 import {zoomit} from "./zoomit.js";
 import {storage} from "./localStorage.js";
+import {jsPlumbHelper} from "./jsPlumbHelper.js";
 
 
 //window.jQuery = $; window.$ = $;
@@ -38,7 +39,6 @@ Logger.disableAll();
 class App {
 	constructor(){
 		this.tableTemplate = "";
-		this.jsPlumbInstance = null;
 		this.isStorageReady = false;
 	};
 	
@@ -57,9 +57,10 @@ class App {
 		
 		if(!asHTML){
 			const attributes = [];
-			if (field.primaryKey && all) attributes.push('primary');
-			if (field.unique) attributes.push('unique');
-			if (field.notNull) attributes.push('not null');
+			if (field.primaryKey && all) attributes.push('Primary');
+			if (field.unique) attributes.push('Unique');
+			if (field.uniqueComposite) attributes.push('Unique Composite');
+			if (field.notNull) attributes.push('Not Null');
 			return attributes.length > 0 ? attributes.join(',') : "";
 		}else{
 			let attributesHTML =  "<div class='form-check form-check-inline'>"
@@ -72,6 +73,8 @@ class App {
 				attributesHTML += 		 
 			  			 "<input class='form-check-input form-control-xs ml-1' type='checkbox' value='unique' disabled" + (field.unique? " checked": "") + ">" +
 						 "<label class='form-check-label form-control-xs'>U</label>" +
+			  			 "<input class='form-check-input form-control-xs ml-1' type='checkbox' value='uniquecomposite' disabled" + (field.uniqueComposite? " checked": "") + ">" +
+						 "<label class='form-check-label form-control-xs'>UC</label>" +
 			  			 "<input class='form-check-input form-control-xs ml-1' type='checkbox' value='notnull' disabled" + (field.notNull? " checked": "") + ">" +
 						 "<label class='form-check-label form-control-xs'>N</label>" +
 					 "</div>";
@@ -83,7 +86,7 @@ class App {
 	
 	deleteTableDiv(table){
 		const tableDiv = dbdesigner.namespaceWrapper +  "#tblDiv" + table.id;  //this is the surrounding DIV
-		this.jsPlumbInstance.remove(jQuery(tableDiv));
+		jsPlumbHelper.jsPlumbInstance.remove(jQuery(tableDiv));
 	};
 	
 	/**
@@ -95,12 +98,11 @@ class App {
 		const tableDiv = dbdesigner.namespaceWrapper +  "#tblDiv" + field.tableId;  //this is the surrounding DIV
 		const $fieldRow = jQuery(tableDiv + " tbody tr#" + field.tableId + "\\." + field.id); //this is the fieldRow on the canvas
 		
-		//this.jsPlumbInstance.remove($fieldRow) this.jsPlumbInstance.empty($fieldRow);;
-		//remove and empty repaint the whole table and therefor reposition enpoints when the table was zoomed
+		//remove and empty repaint the whole table and therefore reposition endpoints when the table was zoomed
 		if (field.pkEndpoint){
-			this.jsPlumbInstance.deleteEndpoint(field.pkEndpoint);
+			jsPlumbHelper.jsPlumbInstance.deleteEndpoint(field.pkEndpoint);
 		};
- 		this.jsPlumbInstance.deleteEndpoint(field.fkEndpoint);
+ 		jsPlumbHelper.jsPlumbInstance.deleteEndpoint(field.fkEndpoint);
 		jQuery($fieldRow).remove();
 	};
 	
@@ -149,8 +151,7 @@ class App {
 		const $fieldName = $fieldRow.find(".fieldName");
 		
 		//for trigger by focus use (add onClick...) See: dbdesigner.togglePopup
-		//"<a id='popover' href='#' class='popoverText' data-toggle='popover'>" + field.name + "</a>" +
-		$fieldName.popover({title: "", container: "body", html: true, trigger: "hover", animation: true, content: function (){
+		$fieldName.popover({title: "Field", container: "body", html: true, trigger: "hover", animation: true, content: function (){
 			const fieldRow = jQuery(this).closest("tr").get(0);			
 			const tableId = fieldRow.id.split(".")[0];
 			const fieldId = fieldRow.id.split(".")[1];
@@ -159,7 +160,7 @@ class App {
 			return 	"<div style='min-width:150px;'>" + 
 						"<span class='fas fa-info-circle fa-lg'></span>" +
 						"<div><b>Name:</b> " + field.name + "</div>" +
-						"<div><b>Type:</b> " + field.type + "</div>" +
+						"<div><b>Type:</b> " + (field.type == "Serial" ? "Serial (Integer)" : field.type) + "</div>" +
 						"<div><b>Size:</b> " + field.size + "</div>" +
 						"<div><b>Default:</b> " + (field.defaultValue ? field.defaultValue : "") + "</div>" +
 						"<div><b>Attributes:</b> " + app.createAttributes(field, true, false) + "</div>" +
@@ -181,7 +182,7 @@ class App {
 			// Create an endpoint for PK connections
 			//Important: Add a class to the endpoint! That is necessary for identifying the endpoint when zooming!
 			const $pkAnchor = jQuery(tableDiv + " div[fpname='" + field.tableId + "." +  field.id + "']");
-			field.pkEndpoint = this.jsPlumbInstance.addEndpoint($pkAnchor, {
+			field.pkEndpoint = jsPlumbHelper.jsPlumbInstance.addEndpoint($pkAnchor, {
 				endpoint: ["Rectangle", {cssClass: 'zoomablePk' + field.tableId + "_" + field.id, width:zoomit.initialEndpointWidth, height:zoomit.initialEndpointHeight}] ,
 		        isSource: true, //don't put this in the endpoint type!
 				type:"primary",
@@ -193,14 +194,14 @@ class App {
 			});
 		}else if(!field.primaryKey && field.pkEndpoint != null){
 			//delete the endpoint
-			this.jsPlumbInstance.deleteEndpoint(field.pkEndpoint);
+			jsPlumbHelper.jsPlumbInstance.deleteEndpoint(field.pkEndpoint);
 			field.pkEndpoint = null;
 		}; //check primary key
 		
 		if(field.fkEndpoint == null){
 			// Create an endpoint for FK connections
 			const $fkAnchor = jQuery(tableDiv + " div[ffname='" + field.tableId + "." +  field.id + "']");
-			field.fkEndpoint = this.jsPlumbInstance.addEndpoint($fkAnchor, {
+			field.fkEndpoint = jsPlumbHelper.jsPlumbInstance.addEndpoint($fkAnchor, {
 				endpoint: ["Rectangle", {cssClass: 'zoomableFk' + field.tableId + "_" + field.id, width:zoomit.initialEndpointWidth, height:zoomit.initialEndpointHeight}] ,
 		        isTarget: true,
 				type:"foreign",
@@ -223,7 +224,7 @@ class App {
 		
 		//reposition all rows as they were shifted
 		for(let i = 0; i < fields.length; i++){
-			app.jsPlumbInstance.revalidate(fields[i]);	
+			jsPlumbHelper.jsPlumbInstance.revalidate(fields[i]);	
 			
 			if(zoomit.currentZoom != 1){
 				//as jsPlumb can not deal with the way we are zooming, the endpoints are readjusted.
@@ -300,7 +301,7 @@ class App {
 		});
 		
 		// Make table draggable
-		this.jsPlumbInstance.draggable(jQuery(tableDiv), {
+		jsPlumbHelper.jsPlumbInstance.draggable(jQuery(tableDiv), {
 		   //containment: true,
 		   containment: "parent", 
 		   stop: (event, ui) => {
@@ -323,54 +324,6 @@ class App {
 	}; //createThePanel
 	
 	/**
-	 * CURRENTLY UNUSED! Creates jsPlumb connections between primary keys end foreign keys for the given table. 
-	 */
-	createTableConnections(table) {
-		logger.info("(Re-)Creating the connections for table " + table.name);
-		jQuery.each(table.fields, (fieldId, field) =>{
-			if (field.pkRef != null) {
-				logger.debug("Checking incoming connections for table *'" + table.name + "' and field '" + field.name + "'")
-				//recreate an incoming connection
-				const tsa = field.pkRef.split('.');
-				logger.debug("source: " + tsa[0] + "." + tsa[1]);
-				logger.debug("destination: " , field.fkEndpoint);
-				this.jsPlumbInstance.connect({source: dbdesigner.tables[tsa[0]].fields[tsa[1]].pkEndpoint, target: field.fkEndpoint});
-			};
-			if (field.primaryKey){
-				logger.debug("Checking outgoing connections for table *'" + table.name + "' and field '" + field.name + "'")
-				//recreate an outgoing connection
-				const referencers = field.getReferencers();
-				let targetField = null;				
-				for (let i = 0; i < referencers.length; i++) {
-					logger.debug("source: " + table.id + "." + field.id);
-					targetField = dbdesigner.tables[referencers[i].tableId].fields[referencers[i].fieldId];
-					logger.debug("destination: " , targetField.fkEndpoint);
-					this.jsPlumbInstance.connect({source: field.pkEndpoint, target: targetField.fkEndpoint});
-				};
-			};
-		});
-	};
-
-	/**
-	 * Creates jsPlumb connections between primary keys end foreign keys for all tables. 
-	 * @see loadCanvasState
-	 */
-	createAllConnections() {
-		logger.info("(Re-)Creating the connections");
-		jQuery.each(dbdesigner.tables, (tableId, table) =>{
-			jQuery.each(table.fields, (fieldId, field) =>{
-				logger.debug("Checking incoming connections for table *'" + table.name + "' and field '" + field.name + "'")
-				if (field.pkRef != null) {
-					const tsa = field.pkRef.split('.');
-					logger.debug("source: " + tsa[0] + "." + tsa[1]);
-					logger.debug("destination: " , field.fkEndpoint);
-					this.jsPlumbInstance.connect({source: dbdesigner.tables[tsa[0]].fields[tsa[1]].pkEndpoint, target: field.fkEndpoint});
-				};
-			});
-		});
-	};
-
-	/**
 	 * A JSON is converted to valid tables which are shown on the canvas. Used by 'ImportCanvas´
 	 * and called when exiting tables are stored in the local storage on application start
 	 * @param appData An object that represents the canvas state.
@@ -389,7 +342,7 @@ class App {
 			zoomit.currentZoom = appData.zoom;
 			
 			// Temporarily suspend drawing to speed up load time
-			this.jsPlumbInstance.setSuspendDrawing(true);
+			jsPlumbHelper.jsPlumbInstance.setSuspendDrawing(true);
 		
 			//import the table structures
 			jQuery.each(appData.strTables, (tableId, tableData) => {
@@ -408,16 +361,16 @@ class App {
 			});
 				
 			// Create the connections
-			this.createAllConnections();
+			jsPlumbHelper.createAllConnections();
 			
 		} finally {
 			//start drawing the repaint set to true
-			this.jsPlumbInstance.setSuspendDrawing(false, true);
+			jsPlumbHelper.jsPlumbInstance.setSuspendDrawing(false, true);
 			
 			//ONLY AFTER things have been drawn we can zoom!
 			if(zoomit.currentZoom != 1){
 				//batch should suspend drawing during the zoom (repaint is set to true)
-				this.jsPlumbInstance.batch(function() {
+				jsPlumbHelper.jsPlumbInstance.batch(function() {
 					zoomit.zoomAll();
 				}, true);				
 				jQuery(dbdesigner.namespaceWrapper + "#zoomSlider").val(zoomit.currentZoom);
@@ -447,7 +400,7 @@ class App {
 	 * @see loadCanvasState()
 	 */
 	clearCanvas() {
-		this.jsPlumbInstance.empty(jQuery(dbdesigner.namespaceWrapper +  "#theCanvas"));
+		jsPlumbHelper.jsPlumbInstance.empty(jQuery(dbdesigner.namespaceWrapper +  "#theCanvas"));
 		
 		dbdesigner.tables  = {};
 		
@@ -570,6 +523,8 @@ class App {
 				for (let i = 0; i < referencers.length; i++) {
 					referencedTable = dbdesigner.tables[referencers[i].tableId];
 					referencedField = referencedTable.fields[referencers[i].fieldId];
+					
+					logger.debug("Deleting reference to field " + field.name + " in " + referencedTable.name + "." + referencedField.name);
 					referencedField.pkRef = null;
 					this.updateField(referencedTable, referencedField, false);
 				};			
@@ -618,7 +573,7 @@ class App {
 			//the user has moved the slider!
 		    zoomit.currentZoom = parseFloat($zoomSlider.val()); 
 			if(dbdesigner.tables != {} && zoomit.currentZoom != zoomit.lastZoom){
-				this.jsPlumbInstance.batch(function() {
+				jsPlumbHelper.jsPlumbInstance.batch(function() {
 					zoomit.zoomAll();
 				});				
 				this.updateZoom(zoomit.currentZoom);
@@ -629,8 +584,8 @@ class App {
 			//event is available here	
 		}, (event, table) => {
 			//logger.log("ZOOM for table " + JSON.stringify(table) + " is done");
-//			this.jsPlumbInstance.setZoom(zoomit.currentZoom);
-//			this.jsPlumbInstance.revalidate(jQuery(dbdesigner.namespaceWrapper + "#tblDiv" + table.id));			
+//			jsPlumbHelper.jsPlumbInstance.setZoom(zoomit.currentZoom);
+//			jsPlumbHelper.jsPlumbInstance.revalidate(jQuery(dbdesigner.namespaceWrapper + "#tblDiv" + table.id));			
 		});
 		
 		jQuery.get(dbdesigner.context + "assets/partials/table.html", (tableTemplate) => {
@@ -673,125 +628,6 @@ jQuery(document).ready(function () {
 	logger.log("document is ready");
 }); //document.ready
 
-jsPlumb.ready(function(){
-	logger.log("jsPlumb is ready");
-	
-	app.jsPlumbInstance = jsPlumb.getInstance({
-		Connector: "Straight",//Flowchart, Straight, Bezier
-		MaxConnections : -1,
-		PaintStyle: {stroke: "rgba(50,50,50,1)", strokeWidth:2.5},
-		HoverPaintStyle: {strokeWidth:4},
-    });
-	
-	//app.jsPlumbInstance.setContainer("theCanvas");
-	app.jsPlumbInstance.setContainer(document.querySelector("div.dbdesigner div.canvas"));
-
-	app.jsPlumbInstance.registerEndpointTypes({
-	  "foreign":{         
-			paintStyle: {fill:"blue", outlineStroke:"black", outlineWidth:1},
-	        endpointHoverStyle: {fill:"red"},
-	  },
-	  "primary":{          
-			paintStyle: {fill:"orange", outlineStroke:"black", outlineWidth:1 },
-	        endpointHoverStyle: {fill:"green"}, 
-	  },
-	});
-		
-	/* jsPlumbInstance events */
-	app.jsPlumbInstance.bind("beforeDrop", function(info) {
-
-		//check if a connection already exists between these two points
-		let con=app.jsPlumbInstance.getConnections({source:info.sourceId, target:info.targetId});
-
-		if (con.length>0) {
-			logger.log("This Connection already exists, do nothing.");
-			//app.jsPlumbInstance.deleteConnection(con[0]);
-			utils.bspopup("This connection already exists.");
-			return false
-		};
-
-		const pkey = jQuery(info.connection.source).attr('fpname').split(".");
-		const fkey = jQuery(info.connection.target).attr('ffname').split(".");
-		
-		//pkey[0] is the table name of the source table
-		//pkey[1] is the field name of the source table
-		//fkey[0] is the table name of the target table
-		//fkey[1] is the field name of the tarbet table
-		logger.log('BEFORE_DROP', pkey, fkey);
-		
-		const sourceTableWithPrimary = dbdesigner.tables[pkey[0]];
-		const sourceFieldWithPrimary = dbdesigner.tables[pkey[0]].fields[pkey[1]];
-		const targetTableWithForeign = dbdesigner.tables[fkey[0]];
-		const targetFieldWithForeign = dbdesigner.tables[fkey[0]].fields[fkey[1]];
-		
-		if(targetFieldWithForeign.pkRef != null){
-			utils.bspopup("The foreign key " + targetTableWithForeign.name + "." + targetFieldWithForeign.name + " is allready referenced by " + sourceTableWithPrimary.name + "." + sourceFieldWithPrimary.name);
-			return false;
-		};
-		
-		//do some checks if the connection is valid
-		if (sourceTableWithPrimary.name == targetTableWithForeign.name && sourceFieldWithPrimary.name == targetFieldWithForeign.name) {
-			utils.bspopup("A field cannot have a reference to itself.");
-			return false;
-		};
-		
-		if(sourceTableWithPrimary.name == targetTableWithForeign.name){
-			utils.bspopup("Primary key and Foreign key must be in different tables");
-			return false;
-		};
-		
-		if(sourceFieldWithPrimary.type != targetFieldWithForeign.type){
-			utils.bspopup(sourceTableWithPrimary.name + "." + sourceFieldWithPrimary.name + " and " + targetTableWithForeign.name + "." + targetFieldWithForeign.name + " must have the same type!");
-			return false;
-		};
-		
-		
-		let isValidConnection = true;
-		jQuery.each(targetTableWithForeign.fields, function(fieldId, field) {
-			if (targetFieldWithForeign.name !=  field.name && field.pkRef == sourceTableWithPrimary.name + "." + sourceFieldWithPrimary.name){
-				//another field of the same table already has a connection to the same primary key in the source table
-				utils.bspopup("Redundancy detected! " + sourceTableWithPrimary.name + "." + sourceFieldWithPrimary.name + " already references " + targetTableWithForeign.name + "." + field.name);
-				isValidConnection = false;
-				return false; // breaks the each loop
-			};
-		});
-		if(!isValidConnection) return false;
-		
-		//set the reference to the primary field in the foreign field
-		targetFieldWithForeign.pkRef = sourceTableWithPrimary.id + "." + sourceFieldWithPrimary.id;
-		utils.bsalert({text: sourceTableWithPrimary.name + "." + sourceFieldWithPrimary.name + '->' + targetTableWithForeign.name + "." + targetFieldWithForeign.name, title:"Connection established: "});
-
-		app.updateField(targetTableWithForeign, targetFieldWithForeign, false);
-		
-		return true; //return false or just quit to drop the new connection.
-	});
-
-	app.jsPlumbInstance.bind("connectionDetached", function(info, originalEvent) {
-		
-		// Don't do connection detached event if it wasn't caused by a user action
-		if (originalEvent == undefined) return;
-		
-		logger.log('Detaching ', info.source, info.target);
-
-		if (jQuery(info.source).attr('fpname') == undefined || jQuery(info.target).attr('ffname')==undefined){
-			return;
-		};
-		
-		const pkey = jQuery(info.source).attr('fpname').split(".");
-		const fkey = jQuery(info.target).attr('ffname').split(".");
-		
-		const sourceTableWithPrimary = dbdesigner.tables[pkey[0]];
-		const sourceFieldWithPrimary = dbdesigner.tables[pkey[0]].fields[pkey[1]];
-		const targetTableWithForeign = dbdesigner.tables[fkey[0]];
-		const targetFieldWithForeign = dbdesigner.tables[fkey[0]].fields[fkey[1]];
-		
-		//delete the reference to the primary field in the foreign field
-		targetFieldWithForeign.pkRef = null;
-		utils.bsalert({text: sourceTableWithPrimary.name + "." + sourceFieldWithPrimary.name + '->' + targetTableWithForeign.name + "." + targetFieldWithForeign.name, title:"Detached connection: "});
-
-		app.updateField(targetTableWithForeign, targetFieldWithForeign, false);
-	});
-}); //jsPlumb.ready
 
 export {app};
 

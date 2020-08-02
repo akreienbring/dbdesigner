@@ -28,7 +28,8 @@ class CodeGenerator {
 	 constructor() {
 		this.codeGenerators = {
 			"ORM/SQLAlchemy": new ORMSQLAlchemy(),
-			"MySQL / PostgreSQL": new MySQL(),
+			"MySQL": new MySQL(),
+			"PostgreSQL": new PostgreSQL(),
 			"SQLite": new SQLite(),
 			"Liferay Service Builder": new LiferayServiceBuilder()
 		};
@@ -39,7 +40,7 @@ class CodeGenerator {
 	 * it into the corresponding template and shows the result window.
 	 * @param outputType the selected code generator
 	 * @param additionalOptions may contain values set by the user in the code generator popup
-	 * 		that was created by showResultsDialog 
+	 * 		that was created by showCodeGeneratorDialog 
 	 */
 	 generateCode(outputType, additionalOptions) {
 
@@ -47,27 +48,32 @@ class CodeGenerator {
 		const selectedCodeGenerator = this.codeGenerators[outputType];
 		selectedCodeGenerator.options = additionalOptions;
 		
-		// Combine template with generated code then show the output
-		jQuery.get(dbdesigner.context + "assets/templates/" + selectedCodeGenerator.template, (data) => {
-			let code = selectedCodeGenerator.generateCode();
-			code = data.format({body: code, version: dbdesigner.version});
-			this.showResults(code);
-		});
+		let code = selectedCodeGenerator.generateCode();
+		if (code == null){
+			//don't show the resulting code because the codeGenerator indicates an error.
+			return;
+		} else {
+			// Combine template with generated code then show the output
+			jQuery.get(dbdesigner.context + "assets/templates/" + selectedCodeGenerator.template, (data) => {
+				code = data.format({body: code, version: dbdesigner.version});
+				this.showResults(code);
+			});
+		};
 	 };
 	 
 	 /**
-	 * showResultsDialog is called when the user wants to generate code. 
+	 * showCodeGeneratorDialog is called when the user wants to generate code. 
 	 * In the popup the code generator is selected and code generation is started.
-	 * @see dbdesigner.showResultsDialog()
+	 * @see dbdesigner.showCodeGeneratorDialog()
 	 */
-	 showResultsDialog(){
+	 showCodeGeneratorDialog(){
 		if (Object.keys(dbdesigner.tables).length==0) {
 			utils.bspopup("There should be at least one table");
 			return;
 		};
 		
 		//create the HTML object that will be evaluated by utils.bspopup. Most important part 
-		//is the call back function that is triggerd on change. If triggered it calls
+		//is the call back function that is triggered on change. If triggered it calls
 		//the handleOptionsRequest method of the corresponding generator.
 		const htmlObj = {};
 		htmlObj.elements = [{
@@ -138,18 +144,33 @@ class CodeGenerator {
 class LiferayServiceBuilder{
     constructor() {
     	this.template = "service.tpl";
-    	this.rawTypes = {"Text": "String", "Integer": "int","Float": "float", "Date": "Date", "DateTime": "Date"};
+    	this.rawTypes = {"Text":"String", "Integer":"long", "Float":"float", "Date":"Date", "DateTime":"Date", Serial: "long"};
+    	
     	//create generator specific options, that will be set CodeGenerator.generateCode()
     	//these are also used as defaults
-    	this.options = {datasource:"indi-smart", datasourcetype:"external", cache:"false"};
+    	this.options = {datasource:"indi-smart", datasourcetype:"external", cache:"false", specifics:"false"};
+    	
+    	//Liferay uses the following fieldnames internally. So these are forbidden if the option "specifics" is true.
+    	this.reservedFieldNames = [
+    		"groupId", 
+    		"companyId", 
+    		"userId", 
+    		"userName", 
+    		"createDate", 
+    		"modifiedDate", 
+    		"status", 
+    		"statusByUserId", 
+    		"statusByUserName", 
+    		"statusDate"
+    	];
      }
     
 	/**
 	 * Implement this method, if there are additional options that the code generator needs to generate the code
-	 * This is a required interface method as it will be called by Codegenerator.showResultsDialog()
+	 * This is a required interface method as it will be called by Codegenerator.showCodeGeneratorDialog()
 	 * Mark the elements with the class "additionalOption" to have there options returned to the generator.
 	 * @param $form The (currently) visible popup where input elements for the options need to be inserted.
-	 * @see CodeGenerator.showResultsDialog()
+	 * @see CodeGenerator.showCodeGeneratorDialog()
 	 */
     handleOptionsRequest($form){
     	const optionsHTML = `<div id="additionalOptions">
@@ -164,6 +185,10 @@ class LiferayServiceBuilder{
     							<option value="true">Cache enabled</option>"
     							<option value="false" selected>Cache disabled</option>"
     						</select>
+    						<select id="specifics" class="additionalOption form-control form-control-sm">
+    							<option value="true">Add Liferay specific fields</option>"
+    							<option value="false" selected>Don't add Liferay specific fields</option>"
+    						</select>
     						</div>
     						`
     	$form.append(optionsHTML);
@@ -173,33 +198,93 @@ class LiferayServiceBuilder{
 	 * Creates the XML of the service.xml
 	 * This is a required interface method as it will be called by Codegenerator.generateCode()
 	 * @see CodeGenerator.generateCode()
-	 * @return The created XML.
+	 * @return The created XML or null (indicates an error)
 	 */
 	generateCode(){
 		logger.debug("Options are " + JSON.stringify(this.options));
 		
 		let code = "";
+		let noPrimaryKeyProblem = true;
+		let foundReservedFieldName = false;
 		
-		let allHavePrimaryKeys = true;
+		let specificFields = "";
+		if (this.options.specifics == "true"){
+			specificFields += `\t\t<!-- Group Instance -->\n`;
+			specificFields += `\t\t<column name='groupId' type='long' ${this.options.datasourcetype == "external" ? "db-name='groupId'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='companyId' type='long' ${this.options.datasourcetype == "external" ? "db-name='companyId'" : "''"}/>\n`;
+			specificFields += `\t\t<!-- Audit fields -->\n`;
+			specificFields += `\t\t<column name='userId' type='long' ${this.options.datasourcetype == "external" ? "db-name='userId'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='userName' type='String' ${this.options.datasourcetype == "external" ? "db-name='userName'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='createDate' type='Date' ${this.options.datasourcetype == "external" ? "db-name='createDate'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='modifiedDate' type='Date' ${this.options.datasourcetype == "external" ? "db-name='modifiedDate'" : "''"}/>\n`;
+			specificFields += `\t\t<!-- Status fields -->\n`;
+			specificFields += `\t\t<column name='status' type='int' ${this.options.datasourcetype == "external" ? "db-name='status'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='statusByUserId' type='long' ${this.options.datasourcetype == "external" ? "db-name='statusByUserId'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='statusByUserName' type='String' ${this.options.datasourcetype == "external" ? "db-name='statusByUserName'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='statusDate' type='Date' ${this.options.datasourcetype == "external" ? "db-name='statusDate'" : "''"}/>\n`;
+		    specificFields += `\t\t<finder name='GroupId' return-type='Collection'>\n`;
+		    specificFields += `\t\t\t<finder-column name="groupId"/>\n`;
+		    specificFields += `\t\t</finder>\n`;
+		}; 
+		
 		jQuery.each(dbdesigner.tables, (tableId, table) => {
+			if (foundReservedFieldName) return;
 			let tableHasPrimaryKey = false;
 			let externalTable = this.options.datasourcetype == "external" ? `table='${table.name}'` : "";
 			
 			code += `\t<entity data-source='${this.options.datasource}' name='${table.name}' local-service='true' cache-enabled='${this.options.cache}' remote-service='false' ${externalTable}>\n`;
 			
+			let countPrimaryKeys = 0;
 			jQuery.each(table.fields, (fieldId, field) => {
-				tableHasPrimaryKey = tableHasPrimaryKey || field.primaryKey;
+				if (this.reservedFieldNames.indexOf(field.name) != -1){
+					let message = `Liferay uses the fieldname '${field.name}' in the table '${table.name}' internally.\n
+						The fieldname should be changed.\n
+						Reserved names are: `;
+					for(let i = 0; i < this.reservedFieldNames.length; i++) message += "\n" + this.reservedFieldNames[i];
+					
+					if (this.options.specifics == "true"){
+						foundReservedFieldName = true;
+						utils.bsalert({title:"Fieldname conflict", text:message, type:"dark", delay: 0});
+						return false;
+					} else {
+						utils.bsalert({title:"Fieldname conflict",text:message, type:"warning", delay: 0});
+					}
+				}
+				
+				if(field.primaryKey){
+					countPrimaryKeys += 1;
+					noPrimaryKeyProblem = noPrimaryKeyProblem && this.rawTypes[field.type] == "long";
+				};
+				
 				let externalColumn = this.options.datasourcetype == "external" ? `db-name='${field.name}'` : "";
 				code += `\t\t<column name='${field.name}' type='${this.rawTypes[field.type]}' ${externalColumn} ${field.primaryKey ? 'primary=\'true\'' : ''}/>\n`;
-			});
+			}); //each field
 			
-			allHavePrimaryKeys	= allHavePrimaryKeys && tableHasPrimaryKey;
+			if (this.options.specifics == "true"){
+				code += specificFields;
+			};
+			
 			code += "\t</entity>\n";
-		});
+			
+			noPrimaryKeyProblem = noPrimaryKeyProblem && countPrimaryKeys == 1;
+			
+			if (foundReservedFieldName) return false;
+		}); //each table
 		
-		if(!allHavePrimaryKeys) utils.bsalert({text:"Liferay requires that all entities have a primary key.",type:"danger", delay: 0});
-
-		return code;
+		if(!noPrimaryKeyProblem){
+			 const message = `Liferay requires that all entities have at least one primary key.\n
+			 				If there are more then one or if the type is not 'Integer' then other features, like 
+			 				for example Indexing / Searching, will not work.\n
+			 				You should check your tables for this rules!
+			 				`
+			 utils.bsalert({title:"Primary Key Problems", text:message, type:"warning", delay: 0});
+		};
+		
+		if(foundReservedFieldName){
+			return null;
+		} else {
+			return code;
+		};
 	}
 };
 
@@ -214,10 +299,10 @@ class ORMSQLAlchemy{
     
 	/**
 	 * Implement this method, if there are additional options that the code generator needs to generate the code
-	 * This is a required interface method as it will be called by Codegenerator.showResultsDialog()
+	 * This is a required interface method as it will be called by Codegenerator.showCodeGeneratorDialog()
 	 * Mark the elements with the class "additionalOption" to have there options returned to the generator.
 	 * @param $form The (currently) visible popup where input elements for the options need to be inserted.
-	 * @see CodeGenerator.showResultsDialog()
+	 * @see CodeGenerator.showCodeGeneratorDialog()
 	 */
     handleOptionsRequest($form){
     	//noop
@@ -271,20 +356,31 @@ class ORMSQLAlchemy{
 class MySQL{
     constructor() {
     	this.template = "mysql.sql";
-    	this.rawTypes = {"Text": "varchar", "Integer": "int","Float": "float", "Date": "date", "DateTime": "datetime"};
+    	this.rawTypes = {"Text": "varchar", "Integer": "int","Float": "float", "Date": "date", "DateTime": "datetime", Serial: "int AUTO_INCREMENT"};
+    	this.compositeUnique = "unique key";
     	this.deferForeignKeys = true; // Add foreign key constraint after running CREATE TABLE statement?
     	this.options = {};
+   		this.options = {generateLiferayFields: "false"};
     }
     
 	/**
 	 * Implement this method, if there are additional options that the code generator needs to generate the code
-	 * This is a required interface method as it will be called by Codegenerator.showResultsDialog()
+	 * This is a required interface method as it will be called by Codegenerator.showCodeGeneratorDialog()
 	 * Mark the elements with the class "additionalOption" to have there options returned to the generator.
 	 * @param $form The (currently) visible popup where input elements for the options need to be inserted.
-	 * @see CodeGenerator.showResultsDialog()
+	 * @see CodeGenerator.showCodeGeneratorDialog()
 	 */
     handleOptionsRequest($form){
-    	//noop
+    	const optionsHTML = `<div id="additionalOptions">
+    						<hr class="separator">
+    						<p class="messageText">Please pass the following options:</p>
+    						<select id="generateLiferayFields" class="additionalOption form-control form-control-sm">
+    							<option value="true">Generate Liferay specific fields</option>"
+    							<option value="false" selected>Don't generate Liferay specific fields</option>"
+    						</select>
+    						</div>
+    						`
+    	$form.append(optionsHTML);
     };
     
 	/**
@@ -299,10 +395,10 @@ class MySQL{
     generateFKConstraint (sourceTableName, sourceTableFields, targetTableName, targetTableFields) {
     	return "alter table " + sourceTableName + " add constraint fk_" + sourceTableName +  "_" + targetTableName 
     			+  " foreign key (" + sourceTableFields +  ") references " + targetTableName +  "(" + targetTableFields  + ");"
-    }    
+    };
     
 	/**
-	 * Creates the SQL for MySQL / PostgreSQL
+	 * Creates the SQL for MySQL
 	 * This is a required interface method as it will be called by Codegenerator.generateCode()
 	 * @see CodeGenerator.generateCode()
 	 * @return The created SQL.
@@ -310,6 +406,23 @@ class MySQL{
     generateCode(){
 		let code = '';
 		let constraints = [];
+		
+		let specificFields = "";
+		if (this.options.generateLiferayFields == "true"){
+			specificFields += `\t-- Liferay Group Instance\n`;
+			specificFields += `\tgroupId int,\n`;
+			specificFields += `\tcompanyId int,\n`;
+			specificFields += `\t-- Liferay Audit fields\n`;
+			specificFields += `\tuserId int,\n`;
+			specificFields += `\tuserName varchar(255),\n`;
+			specificFields += `\tcreateDate date,\n`;
+			specificFields += `\tmodifiedDate date,\n`;
+			specificFields += `\t-- Liferay Status fields\n`;
+			specificFields += `\tstatus int,\n`;
+			specificFields += `\tstatusByUserId int,\n`;
+			specificFields += `\tstatusByUserName varchar(255),\n`;
+			specificFields += `\tstatusDate date`;
+		}; 
 
 		jQuery.each(dbdesigner.tables, (tableId, table) => {
 			logger.info("Generating Code for Table " + table.name);
@@ -317,22 +430,29 @@ class MySQL{
 			code += "create table " + table.name + "\n(\n";
 			
 			const primaryFields = [];
+			const uniqueCompositeFields = [];
 			let primaryCount = 0;
+			let uniqueCompositeCount = 0;
 			let targetTable;
 			let targetField;
 			
-			// Collect number and names of primary key and referenced fields
+			// Collect number and names of primary and uniqueComposite keys
+			// This extra loop is needed bause in the next loop the counts are used
 			jQuery.each(table.fields, function(fieldId, field) {
 				if (field.primaryKey) {
 					primaryFields.push(field.name);
 					primaryCount += 1;
+				};
+				if (field.uniqueComposite) {
+					uniqueCompositeFields.push(field.name);
+					uniqueCompositeCount += 1;
 				};
 			});
 			
 			let fieldCode = [];
 			let referencedTables = [];
 			
-			//generate the table and field dfinitions
+			//generate the table and field definitions
 			jQuery.each(table.fields, (fieldId, field) =>
 			{
 				if (field.type=='Text' || field.type=='String') {
@@ -350,10 +470,11 @@ class MySQL{
 				}
 				
 				fieldCode.push("\t" + field.name + " " + this.rawTypes[field.type] + (field.size==0 ? '' : '(' + field.size + ')')
-				+ (field.notNull ? " not null" : "")
-				+ (field.primaryKey && primaryCount == 1 ? " primary key" : "")
-				+ (field.unique ? " unique" : "")
-				+ (field.defaultValue != null ? " default " + field.defaultValue  : ""));
+					+ (field.notNull ? " not null" : "")
+					+ (field.primaryKey && primaryCount == 1 ? " primary key" : "")
+					+ (field.unique || (field.uniqueComposite && uniqueCompositeCount == 1) ? " unique" : "")
+					+ (field.defaultValue != null ? " default " + field.defaultValue  : "")
+				);
 				
 				if (field.pkRef != null) 
 				{
@@ -367,6 +488,19 @@ class MySQL{
 				};
 				
 			}); //for each field
+			
+			if (this.options.generateLiferayFields == "true"){
+				fieldCode.push(specificFields);
+			};
+				
+			// Add multi-field primary key if needed
+			if (primaryCount > 1) {
+				fieldCode.push("\tprimary key (" + primaryFields.join(', ') + ")");
+			};
+			
+			if (uniqueCompositeCount > 1) {
+				fieldCode.push("\t"+ this.compositeUnique + " (" + uniqueCompositeFields.join(', ') + ")");
+			};
 			
 			//now generate the constraints with respect to composite keys
 			let targetTableName;
@@ -436,11 +570,6 @@ class MySQL{
 				constraints.push(constraint);
 			};
 				
-			// Add multi-field primary key if needed
-			if (primaryCount > 1) {
-				fieldCode.push("\tprimary key (" + primaryFields.join(', ') + ")");
-			}
-			
 			// Add foreign key lines now if needed
 			if (!this.deferForeignKeys) {
 				fieldCode = fieldCode.concat(constraints);
@@ -462,6 +591,19 @@ class MySQL{
 };
 
 /**
+ * PostgreSQL is an internal code Generator.
+ * PostgreSQL inherits from MySQL. It's mostly the same syntax, the only difference is that
+ * autoincrement is achieved in a different way
+  */
+class PostgreSQL extends MySQL{
+	constructor(){
+		super();
+		this.rawTypes = {"Text": "varchar", "Integer": "int","Float": "float", "Date": "date", "DateTime": "datetime", Serial: "SERIAL"};
+		this.compositeUnique = "unique";
+	}
+}
+	
+/**
  * SQLite is an internal code Generator.
  * SQLite inherits from MySQL. It's mostly the same syntax, the only difference is that
  * MySQL doesn't support ALTER TABLE ADD CONSTRAINT FOREIGN KEY, so FKs have to be added
@@ -480,10 +622,10 @@ class SQLite extends MySQL{
 	
 	/**
 	 * Implement this method, if there are additional options that the code generator needs to generate the code
-	 * This is a required interface method as it will be called by Codegenerator.showResultsDialog()
+	 * This is a required interface method as it will be called by Codegenerator.showCodeGeneratorDialog()
 	 * Mark the elements with the class "additionalOption" to have there options returned to the generator.
 	 * @param $form The (currently) visible popup where input elements for the options need to be inserted.
-	 * @see CodeGenerator.showResultsDialog()
+	 * @see CodeGenerator.showCodeGeneratorDialog()
 	 */
     handleOptionsRequest($form){
     	//noop

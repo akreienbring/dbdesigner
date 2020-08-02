@@ -18,6 +18,7 @@ import {Table, Field} from "./classes.js";
 import {app} from "./app.js";
 import {Logger} from "./js-log.js";
 import {datetimepicker} from "./datepicker.js";
+import {jsPlumbHelper} from "./jsPlumbHelper.js";
 
 
 
@@ -62,7 +63,38 @@ class TableDialog {
 				
 				datetimepicker.init(jQuery(dbdesigner.namespaceWrapper + "#datetimepicker1"), jQuery(dbdesigner.namespaceWrapper + "#datepickerButton"), jQuery(dbdesigner.namespaceWrapper + "#fieldDefault"));
 				
-				app.jsPlumbInstance.draggable(jQuery(dbdesigner.namespaceWrapper + "#tableDialog"));
+				jsPlumbHelper.jsPlumbInstance.draggable(jQuery(dbdesigner.namespaceWrapper + "#tableDialog"));
+				
+				const $fieldPrimaryLabel = jQuery(dbdesigner.namespaceWrapper + "#fieldPrimaryLabel");
+				const $fieldUniqueLabel = jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueLabel");
+				const $fieldUniqueCompositeLabel = jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueCompositeLabel");
+				const $fieldNotNullLabel = jQuery(dbdesigner.namespaceWrapper + "#fieldNotNullLabel");
+				
+				$fieldPrimaryLabel.popover({title: "Primary Fields", container: "body", trigger: "hover", animation: true,
+					content: `Use primary fields to uniquely identify a record in a table. 
+						\nThey are allways unique and not null.
+						\nMore than one primary key field will generate a composite primary key.
+					`
+				});
+				
+				$fieldUniqueLabel.popover({title: "Single Unique Fields", container: "body", trigger: "hover", animation: true,
+					content: `Unique fields must be unique within a table. 
+						\nYou can configure them to to not allow null values.
+					`
+				});
+				
+				$fieldUniqueCompositeLabel.popover({title: "Composite Unique Fields", container: "body", trigger: "hover", animation: true,
+					content: `Composite unique fields are combined with other composite unique fields and must be unique as this combination.
+						\nIf there's only one composite unique field in a table, it will be treated like a single unique key. 
+						\nYou can configure them to to not allow null values.
+					`
+				});
+				
+				$fieldNotNullLabel.popover({title: "Not Null", container: "body", trigger: "hover", animation: true,
+					content: `By setting a field to 'not null' the DB ensures that the field has a value other than null.
+					\nYou can combine this setting with a unique contraint.
+					`
+				});
 				
 				this.runTableDialog(tableId, mode); //recursive call if not loaded before
 			});
@@ -81,23 +113,25 @@ class TableDialog {
 			logger.debug("Editing table: " + JSON.stringify(table));
 			jQuery(dbdesigner.namespaceWrapper + "#tableDialog").find(".modal-title").text("Edit Table");
 			
-			jQuery.each(table.fields, (key, val) =>{
+			jQuery.each(table.fields, (key, field) =>{
 				
 				// Load the field values into the dialog
-				jQuery(dbdesigner.namespaceWrapper + "#fieldName").val(val.name);
-				jQuery(dbdesigner.namespaceWrapper + "#fieldId").val(val.id);
-				jQuery(dbdesigner.namespaceWrapper + "#fieldType").val(val.type);
-				jQuery(dbdesigner.namespaceWrapper + "#fieldSize").val(val.size);
-				jQuery(dbdesigner.namespaceWrapper + "#fieldDefault").val(val.defaultValue);
-				jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary").prop("checked", val.primaryKey);
-				jQuery(dbdesigner.namespaceWrapper + "#fieldUnique").prop("checked", val.unique);
-				jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").prop("checked", val.notNull);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldName").val(field.name);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldId").val(field.id);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldType").val(field.type);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldSize").val(field.size);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldDefault").val(field.defaultValue);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary").prop("checked", field.primaryKey);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldUnique").prop("checked", field.unique);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite").prop("checked", field.uniqueComposite);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").prop("checked", field.notNull);
 
 				// Add row to the table inside the tableDialog.html. No validation needed.
 				this.addField(true);
 			});
 		}else{
 			jQuery(dbdesigner.namespaceWrapper + "#tableDialog").find(".modal-title").text("Add Table");
+			this.resetNewFieldBoxes();
 		};
 		
 		jQuery(dbdesigner.namespaceWrapper + "#tableDialog").modal({
@@ -114,6 +148,7 @@ class TableDialog {
 	* @param isLoading If true no validation is performed. This only happens if we load the table data from the canvas.
 	* If the "Add Field" button of the dialog is clicked, Validation will be done.
 	* @see runTableDialog()
+	* @see dbDesigner.addField()
 	*/
 	addField(isLoading){
 		const logger = Logger.getFunctionLogger("TableDialog", "addField");
@@ -125,9 +160,11 @@ class TableDialog {
 		const $fieldType = jQuery(dbdesigner.namespaceWrapper + "#fieldType");
 		const $fieldPrimary = jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary");
 		const $fieldUnique = jQuery(dbdesigner.namespaceWrapper + "#fieldUnique");
+		const $fieldUniqueComposite = jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite");
 		const $fieldNotNull = jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull");
 		
-		//if the field was not saved before, the id is not existing. Use the name instead. 
+		//if the field was not saved before, the fieldId is not existing. Use the name instead.
+		//this means also that we add a new field instead of editing it. 
 		//this is temporary and will be changed when the table is saved
 		const fieldData = {
 			name: $fieldName.val().trim(),
@@ -136,19 +173,14 @@ class TableDialog {
 			size: $fieldType.val() == "Text" ? parseInt($fieldSize.val()) : 0,
 			primaryKey: $fieldPrimary.is(':checked'),
 			unique: $fieldUnique.is(':checked'),
+			uniqueComposite: $fieldUniqueComposite.is(':checked'),
 			notNull: $fieldNotNull.is(':checked'),
 			defaultValue: $fieldDefault.val()
 		};
 		
-		//const isPrimary = $fieldPrimary.is(':checked');
-		//const isUnique = $fieldUnique.is(':checked');
-		//const isNotNull = $fieldNotNull.is(':checked');
-		//const fieldDefault = $fieldDefault.val();
+		logger.log("Adding / Updating field: " + fieldData.name);
 		
-		//const fieldId = ($fieldId.val() != "" ? $fieldId.val() : fieldData.name);
-		//const fieldSize = fieldData.type == "Text" ? parseInt($fieldSize.val()) : 0;
-		
-		logger.log("Adding field: " + fieldData.name);
+		const $tableBody = jQuery(dbdesigner.namespaceWrapper + "#tableDialogTable tbody");
 
 		if(!isLoading){
 			let sizeValid = true;
@@ -169,55 +201,90 @@ class TableDialog {
 			}else if (!sizeValid) {
 				utils.bsalert({text:"Not a valid size Must be (1 - 65535).", type:'danger', delay: 0});
 				return;
-			}else if (jQuery("#" + fieldData.name +".fieldRow" ).length > 0) {
-				utils.bsalert({text:"A field with this name already exists.", type:"danger", delay: 0});
-				return;
 			}else if(fieldData.defaultValue !=""){
 				//check if types are matching
 				if(!this.checkType(fieldData.type, fieldData.defaultValue)){
 					utils.bsalert({text:"The default value doesn't match with the fields type.", type:"danger", delay: 0});
 					return;
 				};
-			}else if(fieldData.primaryKey){
-				const $fields = jQuery(dbdesigner.namespaceWrapper + "#tableDialog #tableDialogTable");
-				jQuery.each($fields.find(".hfieldPrimary"), function(index) {
-					if (jQuery(this).text() == "true") {
-						utils.bsalert({text:"Foreign keys that reference  multiple primary keys are considered as composite keys.", type:"info"});
+			}else{
+				let duplicateFieldName = false;
+				jQuery.each($tableBody.children(), function(index, fieldRow) {
+					if (jQuery(fieldRow).find(".fieldName").text() == fieldData.name && $fieldId.val() == "") {
+						utils.bsalert({text:"A field with this name already exists.", type:"danger", delay: 0});
+						duplicateFieldName = true;
+						return false;
 					};
 				});
+				
+				if(duplicateFieldName) return;
 			};
+			
+			if(fieldData.primaryKey){
+				jQuery.each($tableBody.children(), function(index, fieldRow) {
+					if (jQuery(fieldRow).find(".hfieldPrimary").text() == "true" && jQuery(fieldRow).find(".fieldName").text() != fieldData.name) {
+						utils.bsalert({text:"Foreign keys that reference  multiple primary keys are considered as composite keys.", type:"info"});
+						return false;
+					};
+				});
+			}			
 		}; //isLoading?
 		
 		//build a new fieldRow
-		let html =	"<tr class='fieldRow' id='" + fieldData.id + "'>" +
-					"<th scope='row' class='fieldName'>" + fieldData.name + "</th>" +
-					"<td class='fieldType'>" + fieldData.type + "</td>";
-					
-		html += "<td class='fieldSize'>" + (fieldData.size == 0 ? "-" : fieldData.size)  + "</td>";
-		html += "<td class='fieldDefault' data-toggle='popover'>" + utils.shortenString(fieldData.defaultValue, 8)  + "</td>";
-		html += "<td class='fieldAttributes'>" + app.createAttributes(fieldData, true, true)  + "</td>";
-		html += "<td style='display:none;' class='hfieldId'>" + fieldData.id  + "</td>";
-		html += "<td style='display:none;' class='hfieldPrimary'>" + (fieldData.primaryKey ? 'true' : 'false')  + "</td>";
-		html += "<td style='display:none;' class='hfieldUnique'>" + (fieldData.unique ? 'true' : 'false')  + "</td>";
-		html += "<td style='display:none;' class='hfieldNotNull'>" + (fieldData.notNull ? 'true' : 'false')  + "</td>";
-		html += "<td style='display:none;' class='hfieldDefaultValue'>" + fieldData.defaultValue + "</td>";
-		html += "<td class='fieldAction'><button type='button' onclick='dbdesigner.deleteField(\"" + fieldData.id + "\")' title='Delete Field' style='font-size: 0.75em;' class='btn btn-sm btn-danger'><span class='fas fa-trash-alt'></span></button>";
-		html += "<button type='button' onclick='dbdesigner.editField(\"" + fieldData.id + "\")' title='Edit Field'  style='font-size: 0.75em;' class='btn btn-sm btn-success'><span class='fas fa-edit'></span></button></td>";
-		html += "</tr>";
+		let fieldContentHTML = "";
+		let shortDefault = ""
+		if(fieldData.defaultValue != "" && fieldData.type == "Text" && fieldData.defaultValue.length > 20){
+			 shortDefault = utils.shortenString(fieldData.defaultValue, 20);
+		};
 		
-		jQuery(dbdesigner.namespaceWrapper + "#tableDialogTable tbody").append(html);
+		fieldContentHTML +=	"<th scope='row' class='fieldName'>" + fieldData.name + "</th>";
+		fieldContentHTML += "<td class='fieldType'>" + fieldData.type + "</td>";		
+		fieldContentHTML += "<td class='fieldSize'>" + (fieldData.size == 0 ? "-" : fieldData.size)  + "</td>";
+//		fieldContentHTML += "<td class='fieldDefault'" + (shortDefault != "" ? "data-toggle='popover'" :  "") + ">" + (shortDefault != "" ? shortDefault :  fieldData.defaultValue) + "</td>";
+		fieldContentHTML += "<td class='fieldDefault'>" + (shortDefault != "" ? shortDefault :  fieldData.defaultValue) + "</td>";
+		fieldContentHTML += "<td class='fieldAttributes'>" + app.createAttributes(fieldData, true, true)  + "</td>";
+		fieldContentHTML += "<td style='display:none;' class='hfieldId'>" + fieldData.id  + "</td>";
+		fieldContentHTML += "<td style='display:none;' class='hfieldPrimary'>" + (fieldData.primaryKey ? 'true' : 'false')  + "</td>";
+		fieldContentHTML += "<td style='display:none;' class='hfieldUnique'>" + (fieldData.unique ? 'true' : 'false')  + "</td>";
+		fieldContentHTML += "<td style='display:none;' class='hfieldUniqueComposite'>" + (fieldData.uniqueComposite ? 'true' : 'false')  + "</td>";
+		fieldContentHTML += "<td style='display:none;' class='hfieldNotNull'>" + (fieldData.notNull ? 'true' : 'false')  + "</td>";
+		fieldContentHTML += "<td style='display:none;' class='hfieldDefault'>" + fieldData.defaultValue + "</td>";
+		fieldContentHTML += "<td class='fieldAction'><button type='button' onclick='dbdesigner.deleteField(\"" + fieldData.id + "\")' title='Delete Field' style='font-size: 0.75em;' class='btn btn-sm btn-danger'><span class='fas fa-trash-alt'></span></button>";
+		fieldContentHTML += "<button type='button' onclick='dbdesigner.editField(\"" + fieldData.id + "\")' title='Edit Field'  style='font-size: 0.75em;' class='btn btn-sm btn-success'><span class='fas fa-edit'></span></button></td>";
 		
-		if(fieldData.defaultValue != ""){
+		let action = "";
+		
+		if ($fieldId.val() == "" || isLoading){
+			const finalHTML = "<tr class='fieldRow' id='" + fieldData.id + "'>" + fieldContentHTML + "</tr>"
+			//append the new field
+			$tableBody.append(finalHTML);
+			action = "added";
+		} else {
+			//update an existing field
+			jQuery(dbdesigner.namespaceWrapper + "#addField").text("Add Field");
+			jQuery(dbdesigner.namespaceWrapper + "#cancelUpdate").remove();
+			const $fieldRow = $tableBody.find("#" + fieldData.id + ".fieldRow");
+			$fieldRow.empty();
+			$fieldRow.append(fieldContentHTML);
+			action = "updated";
+		};
+		
+		const $fieldRow = $tableBody.find("#" + fieldData.id + ".fieldRow");
+		const $fieldRowDefaultValue = $fieldRow.find(".fieldDefault");
+			
+		if(shortDefault != ""){
 			//create a popover that shows the full default value
-			const $fieldRow = jQuery(dbdesigner.namespaceWrapper + "#" + fieldData.id + ".fieldRow");
-			const $fieldRowDefaultValue = $fieldRow.find(".fieldDefault");
 			$fieldRowDefaultValue.addClass("popoverText");
+			$fieldRowDefaultValue.attr("data-toggle='popover'");
 			$fieldRowDefaultValue.popover({title: "", container: "body", trigger: "hover", animation: true, content: fieldData.defaultValue});
+		} else {
+			$fieldRowDefaultValue.removeClass("popoverText");
+			$fieldRowDefaultValue.removeAttr("data-toggle='popover'");
 		};
 		
 		if(!isLoading){
 			$fieldName.focus();
-			utils.bsalert({text:"The Field '" + fieldData.name + "' was successfully added.", type:"success"});			
+			utils.bsalert({text:"The Field '" + fieldData.name + "' was successfully " + action + ".", type:"success"});			
 		};
 		
 		this.resetNewFieldBoxes();
@@ -275,17 +342,18 @@ class TableDialog {
 				id: fieldId,
 				type: jQuery(this).find(".fieldType").text(),
 				size: jQuery(this).find(".fieldType").text() == "Text" ? parseInt(jQuery(this).find(".fieldSize").text()) : 0,
-				defaultValue: jQuery(this).find(".hfieldDefaultValue").text() != "" ? jQuery(this).find(".hfieldDefaultValue").text() : null,
+				defaultValue: jQuery(this).find(".hfieldDefault").text() != "" ? jQuery(this).find(".hfieldDefault").text() : null,
 				primaryKey: (jQuery(this).find(".hfieldPrimary").text() == "true"),
 				unique: (jQuery(this).find(".hfieldUnique").text() == "true"),
+				uniqueComposite: (jQuery(this).find(".hfieldUniqueComposite").text() == "true"),
 				notNull: (jQuery(this).find(".hfieldNotNull").text() == "true")
 			};
 			
 			if (editMode == "edit") {
 				if (fieldId in table.fields) {
 					
-					//The following should be obsolete now that the type field is disabled if the field has an existing relation
-					//see 'editField'
+					//The following should be obsolete now that the type field and the primary attribute are disabled if the field has an existing relation
+					//see 'deleteField'
 					if(fieldData.type != table.fields[fieldId].type){
 						logger.info("Field '" + fieldName + "' has changed the type!");
 						
@@ -463,63 +531,104 @@ class TableDialog {
 		jQuery(dbdesigner.namespaceWrapper + "#fieldType").removeAttr('disabled');
 		jQuery(dbdesigner.namespaceWrapper + "#fieldDefault").val('');
 		jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary").prop('checked',false);
+		jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary").removeAttr('disabled');
 		jQuery(dbdesigner.namespaceWrapper + "#fieldUnique").prop('checked',false);
+		jQuery(dbdesigner.namespaceWrapper + "#fieldUnique").removeAttr('disabled');
+		jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite").prop('checked',false);
+		jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite").removeAttr('disabled');
 		jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").prop('checked',false);
+		jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").removeAttr('disabled');
 		datetimepicker.hide();
 	};
 
 	
 	/**
-	 * Edits an existing field. It is deleted first and then can be added again.
+	 * Edit an existing field.
 	 * Triggered when the user clicks the "edit" button of a field in a table.
 	 * @param fieldId The id of the field that will be edited.
+	 * @see dbdesigner.editField()
 	 */
 	editField(fieldId){
 		logger.log("Editing field: " + fieldId);
 		const $fieldRow = jQuery(dbdesigner.namespaceWrapper + "#" + fieldId + ".fieldRow");
 
 
-		logger.log("Found FieldName=" + $fieldRow.find(".fieldName").text() + " Original values:");
-		logger.log("fieldId=" + $fieldRow.find(".hfieldId").text());
-		logger.log("fieldSize=" + $fieldRow.find(".fieldSize").text());
-		logger.log("fieldType=" + $fieldRow.find(".fieldType").text());
-		logger.log("fieldDefault=" + $fieldRow.find(".hfieldDefaultValue").text());
-		logger.log("fieldPrimary=" + $fieldRow.find(".hfieldPrimary").text());
-		logger.log("fieldUnique=" + $fieldRow.find(".hfieldUnique").text());
-		logger.log("fieldNotNull=" + $fieldRow.find(".hfieldNotNull").text());
+		logger.debug("Found FieldName=" + $fieldRow.find(".fieldName").text() + " Original values:");
+		logger.debug("fieldId=" + $fieldRow.find(".hfieldId").text());
+		logger.debug("fieldSize=" + $fieldRow.find(".fieldSize").text());
+		logger.debug("fieldType=" + $fieldRow.find(".fieldType").text());
+		logger.debug("fieldDefault=" + $fieldRow.find(".hfieldDefault").text());
+		logger.debug("fieldPrimary=" + $fieldRow.find(".hfieldPrimary").text());
+		logger.debug("fieldUnique=" + $fieldRow.find(".hfieldUnique").text());
+		logger.debug("fieldUniqueCompsite=" + $fieldRow.find(".hfieldUniqueComposite").text());
+		logger.debug("fieldNotNull=" + $fieldRow.find(".hfieldNotNull").text());
 		
 		
-		if(this.deleteField(fieldId)){
-			const oldFieldTypeValue = jQuery(dbdesigner.namespaceWrapper + "#fieldType").val();
-			const newFieldTypeValue = $fieldRow.find(".fieldType").text();
+		const tableId = jQuery(dbdesigner.namespaceWrapper + "#tableId").val();
 		
-			//set the values of the field in the table dialog
-			jQuery(dbdesigner.namespaceWrapper + "#fieldName").val($fieldRow.find(".fieldName").text());
-			jQuery(dbdesigner.namespaceWrapper + "#fieldType").val(newFieldTypeValue);
-			jQuery(dbdesigner.namespaceWrapper + "#fieldSize").val($fieldRow.find(".fieldSize").text());
-			jQuery(dbdesigner.namespaceWrapper + "#fieldDefault").val($fieldRow.find(".hfieldDefaultValue").text());
-			jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary").prop('checked',($fieldRow.find(".hfieldPrimary").text()) == "true");
-			jQuery(dbdesigner.namespaceWrapper + "#fieldUnique").prop('checked',($fieldRow.find(".hfieldUnique").text()) == "true");
-			jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").prop('checked',($fieldRow.find(".hfieldNotNull").text()) == "true");
-			jQuery(dbdesigner.namespaceWrapper + "#fieldId").val($fieldRow.find(".hfieldId").text());
-			
-			if(newFieldTypeValue != oldFieldTypeValue){
-				//if the type of the field has changed, we need to change and validate the fieldDefault.
-				logger.log("Field Type has changed from " + oldFieldTypeValue + " to " + newFieldTypeValue);
-				this.typeHasChanged();
-			}
+		// If this table isn't new, check for referencers
+		if (dbdesigner.tables[tableId] != undefined) {
+			jQuery(dbdesigner.namespaceWrapper + "#fieldType").attr('disabled',false);
+			jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary").attr('disabled',false);
+			const field = dbdesigner.tables[tableId].fields[fieldId];
+			if (field != undefined) {
+				if (field.primaryKey){
+					const referencers = field.getReferencers();
+					if (referencers.length > 0) {
+						jQuery(dbdesigner.namespaceWrapper + "#fieldType").attr('disabled',true);
+						jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary").attr('disabled',true);
+						utils.bsalert({title: "Existing Relations!", text: "The type and the primary attribute of the field cannot be changed. \n\nPlease delete the relations first if this is intended.", type:'danger', delay: 0});
+					};
+				} else if (field.pkRef != null){
+						jQuery(dbdesigner.namespaceWrapper + "#fieldType").attr('disabled',true);
+						utils.bsalert({title: "Existing Relations!", text: "The type of the field cannot be changed. \n\nPlease delete the relations first if this is intended.", type:'danger', delay: 0});
+				};
+			};
 		};
 		
+		//if the type has changed adjust the fields accordingly
+		const oldFieldTypeValue = jQuery(dbdesigner.namespaceWrapper + "#fieldType").val();
+		const newFieldTypeValue = $fieldRow.find(".fieldType").text();
+
+		//set the values of the field in the table dialog
+		jQuery(dbdesigner.namespaceWrapper + "#fieldName").val($fieldRow.find(".fieldName").text());
+		jQuery(dbdesigner.namespaceWrapper + "#fieldType").val(newFieldTypeValue);
+		jQuery(dbdesigner.namespaceWrapper + "#fieldSize").val($fieldRow.find(".fieldSize").text());
+		jQuery(dbdesigner.namespaceWrapper + "#fieldDefault").val($fieldRow.find(".hfieldDefault").text());
+		jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary").prop('checked',($fieldRow.find(".hfieldPrimary").text()) == "true");
+		jQuery(dbdesigner.namespaceWrapper + "#fieldUnique").prop('checked',($fieldRow.find(".hfieldUnique").text()) == "true");
+		jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite").prop('checked',($fieldRow.find(".hfieldUniqueComposite").text()) == "true");
+		jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").prop('checked',($fieldRow.find(".hfieldNotNull").text()) == "true");
+		jQuery(dbdesigner.namespaceWrapper + "#fieldId").val($fieldRow.find(".hfieldId").text());
+		
+		if(newFieldTypeValue != oldFieldTypeValue){
+			//if the type of the field has changed, we need to change and validate the fieldDefault.
+			logger.log("Field Type has changed from " + oldFieldTypeValue + " to " + newFieldTypeValue);
+			this.typeHasChanged();
+		};
+		
+		this.attributeHasChanged();
+		
+		if (jQuery(dbdesigner.namespaceWrapper + "#cancelUpdate").length == 0){
+			//create the cancel update button
+			jQuery(dbdesigner.namespaceWrapper + "#addField").text("Update");
+			let buttonHTML = "<button id='cancelUpdate' class='btn btn-secondary btn-sm'>Cancel</button>";
+			jQuery(dbdesigner.namespaceWrapper + "#tableDialogAction").append(buttonHTML);
+			
+			jQuery(dbdesigner.namespaceWrapper + "#cancelUpdate").click(() => {
+				jQuery(dbdesigner.namespaceWrapper + "#addField").text("Add Field");
+				jQuery(dbdesigner.namespaceWrapper + "#cancelUpdate").remove();
+				this.resetNewFieldBoxes();
+			});
+		};
 	};
 	
 	/**
 	 * Deletes a field from a table or loads it into the dialog to be edited
 	 * @param fieldId the id of the field that will be deleted
-	 * @see editField()
 	 * @see dbdesigner.deleteField()
 	 */
 	deleteField(fieldId) {
-		// Look at original table name.
 		const tableId = jQuery(dbdesigner.namespaceWrapper + "#tableId").val();
 		
 		// If this table isn't new, check for referencers
@@ -528,19 +637,65 @@ class TableDialog {
 			if (field != undefined) {
 				const referencers = field.getReferencers();
 				if (referencers.length > 0 || field.pkRef != null) {
-					jQuery(dbdesigner.namespaceWrapper + "#fieldType").attr('disabled',true);
-					utils.bsalert({text:"If you save this changes existing relations will be deleted. \nAlso the type of the field cannot be changed. \n\nPlease delete the relations first if this is intended.", type:'danger', delay: 0});
+					utils.bsalert({title: "Existing Relations!", text: "Please delete the relations first if this is intended.", type:'danger', delay: 0});
+					return;
 				};
 			};
 		};
 		
 		jQuery(dbdesigner.namespaceWrapper + "#" + fieldId).remove();
-		return true;
 	}	
+	
+	/**
+	 * Only certain combinations of attributes make sense. Toggle them accordingly
+	 */ 
+	attributeHasChanged(){
+		const $fieldPrimary = jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary");
+		const $fieldUnique = jQuery(dbdesigner.namespaceWrapper + "#fieldUnique");
+		const $fieldUniqueComposite = jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite");
+		const $fieldNotNull = jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull");
+		
+		if ($fieldPrimary.is(':checked')){
+			$fieldUnique.prop('checked', false);
+			$fieldUnique.attr("disabled", true);
+			$fieldUniqueComposite.prop('checked', false);
+			$fieldUniqueComposite.attr("disabled", true);
+			$fieldNotNull.prop('checked', false);
+			$fieldNotNull.attr("disabled", true);
+			return;
+		} else {
+			$fieldUnique.attr("disabled", false);
+			$fieldUniqueComposite.attr("disabled", false);
+			$fieldNotNull.attr("disabled", false);
+		};
+		
+		if ($fieldUnique.is(':checked')){
+			$fieldPrimary.prop('checked', false);
+			$fieldPrimary.attr("disabled", true);
+			$fieldUniqueComposite.prop('checked', false);
+			$fieldUniqueComposite.attr("disabled", true);
+			return;
+		} else {
+			$fieldPrimary.attr("disabled", false);
+			$fieldUniqueComposite.attr("disabled", false);
+		};
+		
+		if ($fieldUniqueComposite.is(':checked')){
+			$fieldPrimary.prop('checked', false);
+			$fieldPrimary.attr("disabled", true);
+			$fieldUnique.prop('checked', false);
+			$fieldUnique.attr("disabled", true);
+			return;
+		} else {
+			$fieldPrimary.attr("disabled", false);
+			$fieldUnique.attr("disabled", false);
+		};
+	};
 	
 	/**
 	 * As valid default values for fields depend on the type of the field, this function determines which default values 
 	 * can be entered each time the type changes. It toggles the datepicker to accept appropriate values and checks if they are valid.
+	 * This function is also called by the onChange event of the dropdown in the tableDialog.
 	 * @see editField()
 	 */
 	typeHasChanged(){
@@ -548,10 +703,16 @@ class TableDialog {
 		const $fieldDefault = jQuery(dbdesigner.namespaceWrapper + "#fieldDefault");
 		let fieldDefaultValue = $fieldDefault.val();
 		
-		//disable the size if not type = Text
-		if (fieldTypeValue !='Text'){
+		//disable / enable fields depending on the type
+		$fieldDefault.attr("disabled", false);
+		if (fieldTypeValue != "Text"){
 			jQuery(dbdesigner.namespaceWrapper + "#fieldSize").val("");
-			jQuery(dbdesigner.namespaceWrapper + "#fieldSize").attr('disabled',true);
+			jQuery(dbdesigner.namespaceWrapper + "#fieldSize").attr("disabled",true);
+			
+			if (fieldTypeValue == "Serial"){
+			 	$fieldDefault.val("");	
+				$fieldDefault.attr('disabled',true);
+			}; 
 		} else {
 			jQuery(dbdesigner.namespaceWrapper + "#fieldSize").removeAttr('disabled');
 			jQuery(dbdesigner.namespaceWrapper + "#fieldSize").val("255");
@@ -587,9 +748,6 @@ class TableDialog {
 			if(fieldDefaultValue) $fieldDefault.val(fieldDefaultValue);
 			break;
 		case "Integer": 
-			$fieldDefault.prop('type','number');
-			if(fieldDefaultValue) $fieldDefault.val(fieldDefaultValue);
-			break;
 		case "Float": 
 			$fieldDefault.prop('type','number');
 			if(fieldDefaultValue) $fieldDefault.val(fieldDefaultValue);
@@ -607,6 +765,7 @@ class TableDialog {
 	 * @param type the type as String (Text, Integer, Float, Date, DateTime)
 	 * @param value the value (passed as a String) to check against the type
 	 * @see tableDialog.typeHasChanged()
+	 * @see tableDialog.addField()
 	 * @return true if value if of the given type, false otherwise.
 	 */
 	checkType(type, value){
