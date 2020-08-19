@@ -193,6 +193,11 @@ class LiferayServiceBuilder{
     						`
     	$form.append(optionsHTML);
     };
+    
+    generateFinder(parentTableName, childFieldName){
+    	let finder = `<finder name='${parentTableName}' return-type='Collection'>\n\t\t\t<finder-column name='${childFieldName}'/>\n\t\t</finder>`
+     	return finder;
+    };
 
 	/**
 	 * Creates the XML of the service.xml
@@ -235,6 +240,10 @@ class LiferayServiceBuilder{
 			code += `\t<entity data-source='${this.options.datasource}' name='${table.name}' local-service='true' cache-enabled='${this.options.cache}' remote-service='false' ${externalTable}>\n`;
 			
 			let countPrimaryKeys = 0;
+			let parentTableName;
+			let childFieldName;
+			let finders = [];
+			
 			jQuery.each(table.fields, (fieldId, field) => {
 				if (this.reservedFieldNames.indexOf(field.name) != -1){
 					let message = `Liferay uses the fieldname '${field.name}' in the table '${table.name}' internally.\n
@@ -257,11 +266,23 @@ class LiferayServiceBuilder{
 				};
 				
 				let externalColumn = this.options.datasourcetype == "external" ? `db-name='${field.name}'` : "";
-				code += `\t\t<column name='${field.name}' type='${this.rawTypes[field.type]}' ${externalColumn} ${field.primaryKey ? 'primary=\'true\'' : ''}/>\n`;
+				let idType = field.type == "Serial" ? "id-type='increment'" : "";
+				code += `\t\t<column name='${field.name}' type='${this.rawTypes[field.type]}' ${idType} ${externalColumn} ${field.primaryKey ? 'primary=\'true\'' : ''}/>\n`;
+				
+				if (field.pkRef != null){
+					//In Liferay all finders need to be declared AFTER the columns
+					parentTableName = dbdesigner.tables[field.pkRef.split(".")[0]].name;
+					childFieldName = field.name;
+					finders.push({parentTableName: parentTableName, childFieldName: childFieldName});
+				};
 			}); //each field
 			
 			if (this.options.specifics == "true"){
 				code += specificFields;
+			};
+			
+			for (let i = 0; i < finders.length; i++){
+				code += "\t\t" + this.generateFinder(finders[i].parentTableName, finders[i].childFieldName) + "\n";
 			};
 			
 			code += "\t</entity>\n";
@@ -415,13 +436,13 @@ class MySQL{
 			specificFields += `\t-- Liferay Audit fields\n`;
 			specificFields += `\tuserId int,\n`;
 			specificFields += `\tuserName varchar(255),\n`;
-			specificFields += `\tcreateDate date,\n`;
-			specificFields += `\tmodifiedDate date,\n`;
+			specificFields += `\tcreateDate datetime,\n`;
+			specificFields += `\tmodifiedDate datetime,\n`;
 			specificFields += `\t-- Liferay Status fields\n`;
 			specificFields += `\tstatus int,\n`;
 			specificFields += `\tstatusByUserId int,\n`;
 			specificFields += `\tstatusByUserName varchar(255),\n`;
-			specificFields += `\tstatusDate date`;
+			specificFields += `\tstatusDate datetime`;
 		}; 
 
 		jQuery.each(dbdesigner.tables, (tableId, table) => {

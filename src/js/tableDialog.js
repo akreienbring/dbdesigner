@@ -255,9 +255,9 @@ class TableDialog {
 		let action = "";
 		
 		if ($fieldId.val() == "" || isLoading){
+			//add the field
 			const finalHTML = "<tr class='fieldRow' id='" + fieldData.id + "'>" + fieldContentHTML + "</tr>"
-			//append the new field
-			$tableBody.append(finalHTML);
+			if (isLoading){ $tableBody.append(finalHTML)} else {$tableBody.prepend(finalHTML)};
 			action = "added";
 		} else {
 			//update an existing field
