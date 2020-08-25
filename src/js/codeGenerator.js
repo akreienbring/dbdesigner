@@ -148,7 +148,7 @@ class LiferayServiceBuilder{
     	
     	//create generator specific options, that will be set CodeGenerator.generateCode()
     	//these are also used as defaults
-    	this.options = {datasource:"indi-smart", datasourcetype:"external", cache:"false", specifics:"false"};
+    	this.options = {datasource:"indi-smart", datasourcetype:"external", cache:"true", specifics:"false", remoteservice:"false"};
     	
     	//Liferay uses the following fieldnames internally. So these are forbidden if the option "specifics" is true.
     	this.reservedFieldNames = [
@@ -178,16 +178,20 @@ class LiferayServiceBuilder{
     						<p class="messageText">Please pass the following options:</p>
     						<input id="datasource" class="additionalOption form-control form-control-sm" type="text" placeholder="Data Source Name" value="${this.options.datasource}" maxlength="20"></input>
     						<select id="datasourcetype" class="additionalOption form-control form-control-sm">
-    							<option value="external">External</option>"
-    							<option value="internal">Internal</option>"
+    							<option value="external" ${this.options.datasourcetype == "external" ? "selected" : "''"}>External</option>"
+    							<option value="internal" ${this.options.datasourcetype == "internal" ? "selected" : "''"}>Internal</option>"
     						</select>
     						<select id="cache" class="additionalOption form-control form-control-sm">
-    							<option value="true">Cache enabled</option>"
-    							<option value="false" selected>Cache disabled</option>"
+    							<option value="true" ${this.options.cache == "true" ? "selected" : "''"}>Cache enabled</option>"
+    							<option value="false" ${this.options.cache == "false" ? "selected" : "''"}>Cache disabled</option>"
     						</select>
     						<select id="specifics" class="additionalOption form-control form-control-sm">
-    							<option value="true">Add Liferay specific fields</option>"
-    							<option value="false" selected>Don't add Liferay specific fields</option>"
+    							<option value="true" ${this.options.specifics == "true" ? "selected" : "''"}>Add Liferay specific fields</option>"
+    							<option value="false" ${this.options.specifics == "false" ? "selected" : "''"}>Don't add Liferay specific fields</option>"
+    						</select>
+    						<select id="remoteservice" class="additionalOption form-control form-control-sm">
+    							<option value="true" ${this.options.remoteservice == "true" ? "selected" : "''"}>Create Remote services</option>"
+    							<option value="false" ${this.options.remoteservice == "false" ? "selected" : "''"}>Don't create Remote services</option>"
     						</select>
     						</div>
     						`
@@ -237,7 +241,7 @@ class LiferayServiceBuilder{
 			let tableHasPrimaryKey = false;
 			let externalTable = this.options.datasourcetype == "external" ? `table='${table.name}'` : "";
 			
-			code += `\t<entity data-source='${this.options.datasource}' name='${table.name}' local-service='true' cache-enabled='${this.options.cache}' remote-service='false' ${externalTable}>\n`;
+			code += `\t<entity data-source='${this.options.datasource}' name='${table.name}' local-service='true' cache-enabled='${this.options.cache}' remote-service='${this.options.remoteservice}' ${externalTable}>\n`;
 			
 			let countPrimaryKeys = 0;
 			let parentTableName;
