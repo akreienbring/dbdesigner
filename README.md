@@ -9,7 +9,7 @@
 1. [Visual Alchemist reloaded](#visual-alchemist-reloaded)
 2. [What it is](#what-it-is)
 3. [Version 1.0.7](#version-107)
-4. [Version 2.2.0](#version-220)
+4. [Version 2.3.0](#version-220)
 5. [Screenshots](#screenshots)
 6. [For users](#for-users)
 7. [Liferay Service Builder](#liferay-service-builder)
@@ -43,9 +43,9 @@ The version number of Prahlads original repo is 1.0.7. Here are the features of 
 - Export the database as raw sql code (`mysql` dialect).
 - Export the database as raw sql code (`sqlite` dialect).
 
-## Version 2.2.0
+## Version 2.3.0
 
-I beamed the version number to 2.2.0. because major code reorganization has been done and the following (main) features were added:
+I beamed the version number to 2.3.0. because major code reorganization has been done and the following (main) features were added:
 
 - Renaming existing tables and fields.
 - Reorder columns
@@ -55,6 +55,7 @@ I beamed the version number to 2.2.0. because major code reorganization has been
 - A scrollable canvas for being able to create lots of tables.
 - Creation of composite foreign constraints
 - Composite Unique keys
+- Cascading Delete
 - Auto-Increment
 - New Codegenerator: service.xml for Liferay Service Builder
 
@@ -118,4 +119,4 @@ DBDesigner is free and open source, and it always will be. It is licensed under 
 
 André Kreienbring
 
-July, 2020
+October, 2020

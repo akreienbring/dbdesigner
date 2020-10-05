@@ -365,15 +365,19 @@ class Utils{
 	/**
 	 * Shows the Help PopUp. Called from the App Class.
 	 * @param isStorageReady If false the user is informed that there is no storage available
+	 * @see app.js
 	 */
-	bshelp(isStorageReady){
-		let strWelcome = "Just click the New Table link to start creating tables. \n\nOnce done, simply click the Code button to get the code!\n\nTo create relationships, drag the orange dots (primary-keys) and connect them to blue dots (candidate foreign-keys).\n\nTo detach/remove the relationships, click the blue area on the foreign-keys and drag it outside the table panel."
+	bsWelcome(isStorageReady){
+		let strWelcome = "Welcome to the DBDesigner.\n\n";
 		if(!isStorageReady){
-			strWelcome += "\n\nCAUTION: No storage is available. Remember to export your work!"
+			strWelcome += "CAUTION: No storage is available. Remember to export your work!";
+		}else {
+			strWelcome += "The detected Local Storage will be used to store your work!\n\n";
 		};
+		strWelcome += "Click on 'Help' to learn the basics.";
 		
 		this.bspopup({
-			title: "Help",
+			title: "Welcome",
 			text: strWelcome
 		});
 	};

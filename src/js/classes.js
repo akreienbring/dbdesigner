@@ -59,6 +59,7 @@ class Field{
 		this.size = 0;
 		this.unique = false;
 		this.uniqueComposite = false;
+		this.deleteCascade = false;
 		this.primaryKey = false;
 		this.notNull = false;
 		this.defaultValue = null;
@@ -85,6 +86,7 @@ class Field{
 		if (field.size !== undefined) this.size = field.size;
 		if (field.unique !== undefined) this.unique = field.unique;
 		if (field.uniqueComposite !== undefined) this.uniqueComposite = field.uniqueComposite;
+		if (field.deleteCascade !== undefined) this.deleteCascade = field.deleteCascade;
 		if (field.primaryKey !== undefined) this.primaryKey = field.primaryKey;
 		if (field.notNull !== undefined) this.notNull = field.notNull;
 		if (field.defaultValue !== undefined) this.defaultValue = field.defaultValue;
@@ -130,6 +132,7 @@ class Field{
 		if(field.size != this.size) return false;
 		if(field.unique != this.unique) return false;
 		if(field.uniqueComposite != this.uniqueComposite) return false;
+		if(field.deleteCascade != this.deleteCascade) return false;
 		if(field.primaryKey != this.primaryKey) return false;
 		if(field.notNull != this.notNull) return false;
 		if(field.defaultValue != this.defaultValue) return false;
@@ -148,6 +151,7 @@ class Field{
 			size: this.size,
 			unique: this.unique,
 			uniqueComposite: this.uniqueComposite,
+			deleteCascade: this.deleteCascade,
 			primaryKey: this.primaryKey,
 			notNull: this.notNull,
 			defaultValue: this.defaultValue,

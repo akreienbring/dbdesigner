@@ -205,7 +205,11 @@ jsPlumb.ready(function(){
 	jsPlumbInstance.registerEndpointTypes({
 	  "foreign":{         
 			paintStyle: {fill:"blue", outlineStroke:"black", outlineWidth:1},
-	        endpointHoverStyle: {fill:"red"},
+	        endpointHoverStyle: {fill:"green"},
+	  },
+	  "foreignDC":{         
+			paintStyle: {fill:"red", outlineStroke:"black", outlineWidth:1},
+	        endpointHoverStyle: {fill:"green"},
 	  },
 	  "primary":{          
 			paintStyle: {fill:"orange", outlineStroke:"black", outlineWidth:1 },

@@ -68,6 +68,7 @@ class TableDialog {
 				const $fieldPrimaryLabel = jQuery(dbdesigner.namespaceWrapper + "#fieldPrimaryLabel");
 				const $fieldUniqueLabel = jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueLabel");
 				const $fieldUniqueCompositeLabel = jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueCompositeLabel");
+				const $fieldDeleteCascadeLabel = jQuery(dbdesigner.namespaceWrapper + "#fieldDeleteCascadeLabel");
 				const $fieldNotNullLabel = jQuery(dbdesigner.namespaceWrapper + "#fieldNotNullLabel");
 				
 				$fieldPrimaryLabel.popover({title: "Primary Fields", container: "body", trigger: "hover", animation: true,
@@ -92,7 +93,14 @@ class TableDialog {
 				
 				$fieldNotNullLabel.popover({title: "Not Null", container: "body", trigger: "hover", animation: true,
 					content: `By setting a field to 'not null' the DB ensures that the field has a value other than null.
-					\nYou can combine this setting with a unique contraint.
+					\nYou can combine this setting with a unique constraint.
+					`
+				});
+				
+				$fieldDeleteCascadeLabel.popover({title: "Delete Cascade", container: "body", trigger: "hover", animation: true,
+					content: `By setting a field to 'delete cascade' and using it as a foreign key, 
+					\nthe related entries are automatically deleted if the (primary) parent entry is deleted.
+					\nYou can combine this setting with a unique constraint.
 					`
 				});
 				
@@ -125,6 +133,7 @@ class TableDialog {
 				jQuery(dbdesigner.namespaceWrapper + "#fieldUnique").prop("checked", field.unique);
 				jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite").prop("checked", field.uniqueComposite);
 				jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").prop("checked", field.notNull);
+				jQuery(dbdesigner.namespaceWrapper + "#fieldDeleteCascade").prop("checked", field.deleteCascade);
 
 				// Add row to the table inside the tableDialog.html. No validation needed.
 				this.addField(true);
@@ -162,6 +171,7 @@ class TableDialog {
 		const $fieldUnique = jQuery(dbdesigner.namespaceWrapper + "#fieldUnique");
 		const $fieldUniqueComposite = jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite");
 		const $fieldNotNull = jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull");
+		const $fieldDeleteCascade = jQuery(dbdesigner.namespaceWrapper + "#fieldDeleteCascade");
 		
 		//if the field was not saved before, the fieldId is not existing. Use the name instead.
 		//this means also that we add a new field instead of editing it. 
@@ -175,6 +185,7 @@ class TableDialog {
 			unique: $fieldUnique.is(':checked'),
 			uniqueComposite: $fieldUniqueComposite.is(':checked'),
 			notNull: $fieldNotNull.is(':checked'),
+			deleteCascade: $fieldDeleteCascade.is(':checked'),
 			defaultValue: $fieldDefault.val()
 		};
 		
@@ -247,6 +258,7 @@ class TableDialog {
 		fieldContentHTML += "<td style='display:none;' class='hfieldPrimary'>" + (fieldData.primaryKey ? 'true' : 'false')  + "</td>";
 		fieldContentHTML += "<td style='display:none;' class='hfieldUnique'>" + (fieldData.unique ? 'true' : 'false')  + "</td>";
 		fieldContentHTML += "<td style='display:none;' class='hfieldUniqueComposite'>" + (fieldData.uniqueComposite ? 'true' : 'false')  + "</td>";
+		fieldContentHTML += "<td style='display:none;' class='hfieldDeleteCascade'>" + (fieldData.deleteCascade ? 'true' : 'false')  + "</td>";
 		fieldContentHTML += "<td style='display:none;' class='hfieldNotNull'>" + (fieldData.notNull ? 'true' : 'false')  + "</td>";
 		fieldContentHTML += "<td style='display:none;' class='hfieldDefault'>" + fieldData.defaultValue + "</td>";
 		fieldContentHTML += "<td class='fieldAction'><button type='button' onclick='dbdesigner.deleteField(\"" + fieldData.id + "\")' title='Delete Field' style='font-size: 0.75em;' class='btn btn-sm btn-danger'><span class='fas fa-trash-alt'></span></button>";
@@ -346,6 +358,7 @@ class TableDialog {
 				primaryKey: (jQuery(this).find(".hfieldPrimary").text() == "true"),
 				unique: (jQuery(this).find(".hfieldUnique").text() == "true"),
 				uniqueComposite: (jQuery(this).find(".hfieldUniqueComposite").text() == "true"),
+				deleteCascade: (jQuery(this).find(".hfieldDeleteCascade").text() == "true"),
 				notNull: (jQuery(this).find(".hfieldNotNull").text() == "true")
 			};
 			
@@ -536,6 +549,8 @@ class TableDialog {
 		jQuery(dbdesigner.namespaceWrapper + "#fieldUnique").removeAttr('disabled');
 		jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite").prop('checked',false);
 		jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite").removeAttr('disabled');
+		jQuery(dbdesigner.namespaceWrapper + "#fieldDeleteCascade").prop('checked',false);
+		jQuery(dbdesigner.namespaceWrapper + "#fieldDeleteCascade").removeAttr('disabled');
 		jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").prop('checked',false);
 		jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").removeAttr('disabled');
 		datetimepicker.hide();
@@ -561,6 +576,7 @@ class TableDialog {
 		logger.debug("fieldPrimary=" + $fieldRow.find(".hfieldPrimary").text());
 		logger.debug("fieldUnique=" + $fieldRow.find(".hfieldUnique").text());
 		logger.debug("fieldUniqueCompsite=" + $fieldRow.find(".hfieldUniqueComposite").text());
+		logger.debug("fieldDeleteCascade=" + $fieldRow.find(".hfieldDeleteCascade").text());
 		logger.debug("fieldNotNull=" + $fieldRow.find(".hfieldNotNull").text());
 		
 		
@@ -598,6 +614,7 @@ class TableDialog {
 		jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary").prop('checked',($fieldRow.find(".hfieldPrimary").text()) == "true");
 		jQuery(dbdesigner.namespaceWrapper + "#fieldUnique").prop('checked',($fieldRow.find(".hfieldUnique").text()) == "true");
 		jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite").prop('checked',($fieldRow.find(".hfieldUniqueComposite").text()) == "true");
+		jQuery(dbdesigner.namespaceWrapper + "#fieldDeleteCascade").prop('checked',($fieldRow.find(".hfieldDeleteCascade").text()) == "true");
 		jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull").prop('checked',($fieldRow.find(".hfieldNotNull").text()) == "true");
 		jQuery(dbdesigner.namespaceWrapper + "#fieldId").val($fieldRow.find(".hfieldId").text());
 		
@@ -653,6 +670,7 @@ class TableDialog {
 		const $fieldPrimary = jQuery(dbdesigner.namespaceWrapper + "#fieldPrimary");
 		const $fieldUnique = jQuery(dbdesigner.namespaceWrapper + "#fieldUnique");
 		const $fieldUniqueComposite = jQuery(dbdesigner.namespaceWrapper + "#fieldUniqueComposite");
+		const $fieldDeleteCascade = jQuery(dbdesigner.namespaceWrapper + "#fieldDeleteCascade");
 		const $fieldNotNull = jQuery(dbdesigner.namespaceWrapper + "#fieldNotNull");
 		
 		if ($fieldPrimary.is(':checked')){
@@ -660,6 +678,8 @@ class TableDialog {
 			$fieldUnique.attr("disabled", true);
 			$fieldUniqueComposite.prop('checked', false);
 			$fieldUniqueComposite.attr("disabled", true);
+			$fieldDeleteCascade.prop('checked', false);
+			$fieldDeleteCascade.attr("disabled", true);
 			$fieldNotNull.prop('checked', false);
 			$fieldNotNull.attr("disabled", true);
 			return;
@@ -667,6 +687,7 @@ class TableDialog {
 			$fieldUnique.attr("disabled", false);
 			$fieldUniqueComposite.attr("disabled", false);
 			$fieldNotNull.attr("disabled", false);
+			$fieldDeleteCascade.attr("disabled", false);
 		};
 		
 		if ($fieldUnique.is(':checked')){
@@ -689,6 +710,22 @@ class TableDialog {
 		} else {
 			$fieldPrimary.attr("disabled", false);
 			$fieldUnique.attr("disabled", false);
+		};
+		
+		if ($fieldDeleteCascade.is(':checked')){
+			$fieldPrimary.prop('checked', false);
+			$fieldPrimary.attr("disabled", true);
+			return;
+		} else {
+			$fieldPrimary.attr("disabled", false);
+		};
+		
+		if ($fieldNotNull.is(':checked')){
+			$fieldPrimary.prop('checked', false);
+			$fieldPrimary.attr("disabled", true);
+			return;
+		} else {
+			$fieldPrimary.attr("disabled", false);
 		};
 	};
 	

@@ -123,9 +123,9 @@ body {
 	
 	/*Kill the responsiveness of the TableDialog for the sake of scrollbars*/
 	.tableDialog {
-		width: 660px; 
-		max-width: 660px!important; 
-		min-width: 660px!important; 	
+		width: 695px; 
+		max-width: 695px!important; 
+		min-width: 695px!important; 	
 	}
 	
 	#tableDialog {
@@ -134,13 +134,13 @@ body {
 	
 	/* Input fields in table dialog */
 	#tableDialog .input-table-name{
-	    width: 240px;
+	    width: 245px;
 		font-size: 1.0em;
 		margin-left: 30px;
 	}
 
 	#tableDialog .input-field-name{
-	    width: 360px;
+	    width: 365px;
 	}
 	
 	#tableDialog .field-input{
@@ -152,11 +152,13 @@ body {
 		height: 25px;
 	}
 	
-	/*The table in tableDialog with scrollbars*/
+	/*The table in tableDialog with scrollbars
+	  Closely related to the .tableDialog.width 
+      and to the width of the table fields*/
 	#tableDialogTable {
 	    display: flex;
 	    flex-flow: column;
-	    width: 600px;
+	    width: 635px;
 		table-layout: fixed;
 	}
 	
@@ -220,16 +222,16 @@ body {
 	}
 
 	#tableDialogTable .fieldDefault{
-		width: 148px;
-		min-width: 148px;
-		max-width: 148px;
+		width: 140px;
+		min-width: 140px;
+		max-width: 140px;
 		overflow: hidden;	
 	}
 	
 	#tableDialogTable .fieldAttributes{
-		width: 135px;
-		min-width: 135px;
-		max-width: 135px;
+		width: 170px;
+		min-width: 170px;
+		max-width: 170px;
 		overflow: hidden;
 	}
 	

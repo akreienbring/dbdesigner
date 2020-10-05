@@ -60,6 +60,7 @@ class App {
 			if (field.primaryKey && all) attributes.push('Primary');
 			if (field.unique) attributes.push('Unique');
 			if (field.uniqueComposite) attributes.push('Unique Composite');
+			if (field.deleteCascade) attributes.push('Delete Cascade');
 			if (field.notNull) attributes.push('Not Null');
 			return attributes.length > 0 ? attributes.join(',') : "";
 		}else{
@@ -67,7 +68,9 @@ class App {
 				if(all){
 					attributesHTML += 
 						"<input class='form-check-input form-control-xs' type='checkbox' value='primary' disabled" + (field.primaryKey? " checked": "") + ">" +
-						"<label class='form-check-label form-control-xs'>P</label>"
+						"<label class='form-check-label form-control-xs'>P</label>"  +
+			  			 "<input class='form-check-input form-control-xs ml-1' type='checkbox' value='deletecascade' disabled" + (field.deleteCascade? " checked": "") + ">" +
+						 "<label class='form-check-label form-control-xs'>DC</label>"
 				};  			 
 						
 				attributesHTML += 		 
@@ -192,7 +195,7 @@ class App {
 					[ "Arrow", { width:10, height:10, location:1, id:"arrow"}],
 				]
 			});
-		}else if(!field.primaryKey && field.pkEndpoint != null){
+		} else if(!field.primaryKey && field.pkEndpoint != null){
 			//delete the endpoint
 			jsPlumbHelper.jsPlumbInstance.deleteEndpoint(field.pkEndpoint);
 			field.pkEndpoint = null;
@@ -204,10 +207,13 @@ class App {
 			field.fkEndpoint = jsPlumbHelper.jsPlumbInstance.addEndpoint($fkAnchor, {
 				endpoint: ["Rectangle", {cssClass: 'zoomableFk' + field.tableId + "_" + field.id, width:zoomit.initialEndpointWidth, height:zoomit.initialEndpointHeight}] ,
 		        isTarget: true,
-				type:"foreign",
+				type: field.deleteCascade ? "foreignDC" : "foreign",
 				anchor:[0.5, 0.5, 0, 0] //left anchor curve from middle
 				//scope: field.type,
 			});
+		} else {
+			//set the correct type of the endpoint
+			field.deleteCascade ? field.fkEndpoint.setStyle({fill:"red", outlineStroke:"black", outlineWidth:1}) : field.fkEndpoint.setStyle({fill:"blue", outlineStroke:"black", outlineWidth:1});
 		};
 	};
 	
@@ -600,7 +606,7 @@ class App {
 					storage.get().then( (appData) => {
 					    if(appData){
 							if(jQuery.isEmptyObject(appData.strTables)){
-						    	utils.bshelp(true);
+						    	utils.bsWelcome(true);
 						    }else{
 							    //load existing tables to the Canvas. Save is not necessary
 								this.loadCanvasState(appData, false);

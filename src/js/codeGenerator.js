@@ -198,11 +198,50 @@ class LiferayServiceBuilder{
     	$form.append(optionsHTML);
     };
     
-    generateFinder(parentTableName, childFieldName){
+    /**
+   	 * Creates a finder element for a parent table.
+   	 * Liferay Service Builder then generates a finder method like for example 'findByManufacturer(manufacturerId)'
+   	 * which will return all devices by one manufacturer.
+   	 */
+    generatePrimaryFinder(parentTableName, childFieldName){
     	let finder = `<finder name='${parentTableName}' return-type='Collection'>\n\t\t\t<finder-column name='${childFieldName}'/>\n\t\t</finder>`
      	return finder;
     };
 
+    /**
+   	 * Creates a finder element for a unique key.
+   	 * Liferay Service Builder then generates a finder method like for example 'findByEAN(EAN)'
+   	 * which will return the device with the EAN if it exists.
+   	 */
+    generateUniqueFinder(tableName, fieldName){
+    	//make the first letter of the field name uppercase.
+    	let finderName = fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+    	let finder = `<finder name='${finderName}' return-type='${tableName}'>\n\t\t\t<finder-column name='${fieldName}'/>\n\t\t</finder>`
+     	return finder;
+    };
+
+    /**
+   	 * Creates a finder element for composite unique key.
+   	 * Liferay Service Builder then generates a finder method like for example 'findByName_Id(name, id)'
+   	 * which will return the device with the name AND the Id if it exists.
+   	 */
+    generateUniqueFinders(uniqueFinders){
+     	let finderName = "";
+     	let columns = "";
+     	let tableName = uniqueFinders[0].tableName;
+     	
+     	for (let i = 0; i < uniqueFinders.length; i++){
+     		let fieldName = uniqueFinders[i].fieldName;
+     		
+     		if (finderName != "") finderName += "_";
+     		finderName += fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+     		
+ 			columns += `\n\t\t\t<finder-column name='${fieldName}'/>`;
+		};
+		
+		return `\t\t<finder name='${finderName}' return-type='${tableName}'>${columns}\n\t\t</finder>\n`
+    };
+    
 	/**
 	 * Creates the XML of the service.xml
 	 * This is a required interface method as it will be called by Codegenerator.generateCode()
@@ -219,18 +258,18 @@ class LiferayServiceBuilder{
 		let specificFields = "";
 		if (this.options.specifics == "true"){
 			specificFields += `\t\t<!-- Group Instance -->\n`;
-			specificFields += `\t\t<column name='groupId' type='long' ${this.options.datasourcetype == "external" ? "db-name='groupId'" : "''"}/>\n`;
-			specificFields += `\t\t<column name='companyId' type='long' ${this.options.datasourcetype == "external" ? "db-name='companyId'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='groupId' type='long'${this.options.datasourcetype == "external" ? " db-name='groupId'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='companyId' type='long'${this.options.datasourcetype == "external" ? " db-name='companyId'" : "''"}/>\n`;
 			specificFields += `\t\t<!-- Audit fields -->\n`;
-			specificFields += `\t\t<column name='userId' type='long' ${this.options.datasourcetype == "external" ? "db-name='userId'" : "''"}/>\n`;
-			specificFields += `\t\t<column name='userName' type='String' ${this.options.datasourcetype == "external" ? "db-name='userName'" : "''"}/>\n`;
-			specificFields += `\t\t<column name='createDate' type='Date' ${this.options.datasourcetype == "external" ? "db-name='createDate'" : "''"}/>\n`;
-			specificFields += `\t\t<column name='modifiedDate' type='Date' ${this.options.datasourcetype == "external" ? "db-name='modifiedDate'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='userId' type='long'${this.options.datasourcetype == "external" ? " db-name='userId'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='userName' type='String'${this.options.datasourcetype == "external" ? " db-name='userName'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='createDate' type='Date'${this.options.datasourcetype == "external" ? " db-name='createDate'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='modifiedDate' type='Date'${this.options.datasourcetype == "external" ? " db-name='modifiedDate'" : "''"}/>\n`;
 			specificFields += `\t\t<!-- Status fields -->\n`;
-			specificFields += `\t\t<column name='status' type='int' ${this.options.datasourcetype == "external" ? "db-name='status'" : "''"}/>\n`;
-			specificFields += `\t\t<column name='statusByUserId' type='long' ${this.options.datasourcetype == "external" ? "db-name='statusByUserId'" : "''"}/>\n`;
-			specificFields += `\t\t<column name='statusByUserName' type='String' ${this.options.datasourcetype == "external" ? "db-name='statusByUserName'" : "''"}/>\n`;
-			specificFields += `\t\t<column name='statusDate' type='Date' ${this.options.datasourcetype == "external" ? "db-name='statusDate'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='status' type='int'${this.options.datasourcetype == "external" ? " db-name='status'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='statusByUserId' type='long'${this.options.datasourcetype == "external" ? " db-name='statusByUserId'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='statusByUserName' type='String'${this.options.datasourcetype == "external" ? " db-name='statusByUserName'" : "''"}/>\n`;
+			specificFields += `\t\t<column name='statusDate' type='Date'${this.options.datasourcetype == "external" ? " db-name='statusDate'" : "''"}/>\n`;
 		    specificFields += `\t\t<finder name='GroupId' return-type='Collection'>\n`;
 		    specificFields += `\t\t\t<finder-column name="groupId"/>\n`;
 		    specificFields += `\t\t</finder>\n`;
@@ -239,14 +278,16 @@ class LiferayServiceBuilder{
 		jQuery.each(dbdesigner.tables, (tableId, table) => {
 			if (foundReservedFieldName) return;
 			let tableHasPrimaryKey = false;
-			let externalTable = this.options.datasourcetype == "external" ? `table='${table.name}'` : "";
+			let externalTable = this.options.datasourcetype == "external" ? ` table='${table.name}'` : "";
 			
-			code += `\t<entity data-source='${this.options.datasource}' name='${table.name}' local-service='true' cache-enabled='${this.options.cache}' remote-service='${this.options.remoteservice}' ${externalTable}>\n`;
+			code += `\t<entity data-source='${this.options.datasource}' name='${table.name}' local-service='true' cache-enabled='${this.options.cache}' remote-service='${this.options.remoteservice}'${externalTable}>\n`;
 			
 			let countPrimaryKeys = 0;
 			let parentTableName;
 			let childFieldName;
-			let finders = [];
+			let primaryFinders = [];
+			let uniqueFinders = [];
+			let uniqueCompositeFinders = [];
 			
 			jQuery.each(table.fields, (fieldId, field) => {
 				if (this.reservedFieldNames.indexOf(field.name) != -1){
@@ -269,15 +310,23 @@ class LiferayServiceBuilder{
 					noPrimaryKeyProblem = noPrimaryKeyProblem && this.rawTypes[field.type] == "long";
 				};
 				
-				let externalColumn = this.options.datasourcetype == "external" ? `db-name='${field.name}'` : "";
-				let idType = field.type == "Serial" ? "id-type='increment'" : "";
-				code += `\t\t<column name='${field.name}' type='${this.rawTypes[field.type]}' ${idType} ${externalColumn} ${field.primaryKey ? 'primary=\'true\'' : ''}/>\n`;
+				let externalColumn = this.options.datasourcetype == "external" ? ` db-name='${field.name}'` : "";
+				let idType = field.type == "Serial" ? " id-type='increment'" : "";
+				code += `\t\t<column name='${field.name}' type='${this.rawTypes[field.type]}'${idType}${externalColumn}${field.primaryKey ? ' primary=\'true\'' : ''}/>\n`;
 				
 				if (field.pkRef != null){
 					//In Liferay all finders need to be declared AFTER the columns
 					parentTableName = dbdesigner.tables[field.pkRef.split(".")[0]].name;
 					childFieldName = field.name;
-					finders.push({parentTableName: parentTableName, childFieldName: childFieldName});
+					primaryFinders.push({parentTableName: parentTableName, childFieldName: childFieldName});
+				};
+				
+				if (field.unique){
+					uniqueFinders.push({tableName: table.name, fieldName: field.name});
+				};
+				
+				if (field.uniqueComposite){
+					uniqueCompositeFinders.push({tableName: table.name, fieldName: field.name});
 				};
 			}); //each field
 			
@@ -285,9 +334,15 @@ class LiferayServiceBuilder{
 				code += specificFields;
 			};
 			
-			for (let i = 0; i < finders.length; i++){
-				code += "\t\t" + this.generateFinder(finders[i].parentTableName, finders[i].childFieldName) + "\n";
+			for (let i = 0; i < primaryFinders.length; i++){
+				code += "\t\t" + this.generatePrimaryFinder(primaryFinders[i].parentTableName, primaryFinders[i].childFieldName) + "\n";
 			};
+			
+			for (let i = 0; i < uniqueFinders.length; i++){
+				code += "\t\t" + this.generateUniqueFinder(uniqueFinders[i].tableName, uniqueFinders[i].fieldName) + "\n";
+			};
+			
+			if (uniqueCompositeFinders.length > 0 ) code += this.generateUniqueFinders(uniqueCompositeFinders);
 			
 			code += "\t</entity>\n";
 			
@@ -411,15 +466,15 @@ class MySQL{
 	/**
 	 * Creates a primary / foreign key relation between two tables
 	 * @param sourceTableName The table that is referenced by a primary key from another table
-	 * @param sourceTableField The fields which are refrences by primary key fields in another table
+	 * @param sourceTableFields The fields which are referenced by a primary key fields in another table
 	 * @param targetTableName The table that has the primary keys which are referencing the source table
-	 * @param targetTableFields The primary field(s) in in the target table that are referencing the source table
+	 * @param targetTableFields The primary field(s) in the target table that are referencing the source table
+	 * @param deleteCascade If true child record are deleted if a parent record is deleted
 	 * @return The alter table statement to create the primary / foreign key relation.
 	 '
 	 */
-    generateFKConstraint (sourceTableName, sourceTableFields, targetTableName, targetTableFields) {
-    	return "alter table " + sourceTableName + " add constraint fk_" + sourceTableName +  "_" + targetTableName 
-    			+  " foreign key (" + sourceTableFields +  ") references " + targetTableName +  "(" + targetTableFields  + ");"
+    generateFKConstraint (sourceTableName, sourceTableFields, targetTableName, targetTableFields, deleteCascade) {
+    	return `alter table ${sourceTableName} add constraint fk_${sourceTableName}_${targetTableName} foreign key (${sourceTableFields}) references ${targetTableName} (${targetTableFields})${deleteCascade ? " ON DELETE CASCADE;" : ";"}`
     };
     
 	/**
@@ -462,7 +517,7 @@ class MySQL{
 			let targetField;
 			
 			// Collect number and names of primary and uniqueComposite keys
-			// This extra loop is needed bause in the next loop the counts are used
+			// This extra loop is needed because in the next loop the counts are used
 			jQuery.each(table.fields, function(fieldId, field) {
 				if (field.primaryKey) {
 					primaryFields.push(field.name);
@@ -503,13 +558,13 @@ class MySQL{
 				
 				if (field.pkRef != null) 
 				{
-					
 					targetTable = dbdesigner.tables[field.pkRef.split(".")[0]];
 					targetField = targetTable.fields[field.pkRef.split(".")[1]];
 					
-					//push to generate composite references later
-					logger.debug("Pushing [" + targetTable.name+ "." + targetField.name + "," + table.name + "." + field.name +"] to referencedTables");
-					referencedTables.push([targetTable.name+ "." + targetField.name, table.name + "." + field.name]);
+					//push to generate (composite) references later
+					//this is an array of arrays. Each entry holds the table / field names and if the foreign field supports a delete cascade
+					logger.debug("Pushing [" + targetTable.name+ "." + targetField.name + "," + table.name + "." + field.name +"," + field.deleteCascade + "] to referencedTables");
+					referencedTables.push([targetTable.name+ "." + targetField.name, table.name + "." + field.name, field.deleteCascade]);
 				};
 				
 			}); //for each field
@@ -532,6 +587,7 @@ class MySQL{
 			let targetFieldName;
 			let sourceTableName;
 			let sourceFieldName;
+			let deleteCascade;
 			let sourceTableFields = "";
 			let targetTableFields = "";
 			let lastReferencedTable = "";
@@ -546,6 +602,7 @@ class MySQL{
 				targetFieldName = referencedTables[0][0].split(".")[1];
 				sourceTableName = referencedTables[0][1].split(".")[0];
 				sourceFieldName = referencedTables[0][1].split(".")[1];
+				deleteCascade = referencedTables[0][2];
 				
 				targetTableFields = targetFieldName;
 				sourceTableFields = sourceFieldName;
@@ -556,13 +613,14 @@ class MySQL{
 			for (let i=1; i < referencedTables.length; i++){
 				
 				if (referencedTables[i][0].split(".")[0] == lastReferencedTable && referencedTables.length > 1){
+					//keep on going until the table name changes
 				}else{
 					if (targetTableFields == "") targetTableFields = targetFieldName;
 					if (sourceTableFields == "") sourceTableFields = sourceFieldName;
 					
 					// add any constraints placed by raw formats like MySQL and PostgreSQL.
 					// save constraints in an array (they are added after all tables have been created)
-					constraint = this.generateFKConstraint(sourceTableName, sourceTableFields, targetTableName, targetTableFields);
+					constraint = this.generateFKConstraint(sourceTableName, sourceTableFields, targetTableName, targetTableFields, deleteCascade);
 					
 					logger.debug("Adding constraint: " + constraint);
 					constraints.push(constraint);
@@ -574,6 +632,8 @@ class MySQL{
 				targetFieldName = referencedTables[i][0].split(".")[1];
 				sourceTableName = referencedTables[i][1].split(".")[0];
 				sourceFieldName = referencedTables[i][1].split(".")[1];
+				//if one of the field supports delete cascade it overrules the others.
+				deleteCascade = deleteCascade || referencedTables[i][2];
 				
 				if (targetTableFields != ""){
 					targetTableFields += ", " + targetFieldName;
@@ -590,7 +650,7 @@ class MySQL{
 			if (targetTableFields != ""){
 				// add any constraints placed by raw formats like MySQL and PostgreSQL.
 				// save constraints in an array (they are added after all tables have been created)
-				constraint = this.generateFKConstraint(sourceTableName, sourceTableFields, targetTableName, targetTableFields);
+				constraint = this.generateFKConstraint(sourceTableName, sourceTableFields, targetTableName, targetTableFields, deleteCascade);
 				logger.debug("Adding constraint: " + constraint);
 				constraints.push(constraint);
 			};
@@ -618,7 +678,7 @@ class MySQL{
 /**
  * PostgreSQL is an internal code Generator.
  * PostgreSQL inherits from MySQL. It's mostly the same syntax, the only difference is that
- * autoincrement is achieved in a different way
+ * autoincrement and composite unique are noted in a different way
   */
 class PostgreSQL extends MySQL{
 	constructor(){
@@ -659,14 +719,14 @@ class SQLite extends MySQL{
 	/**
 	 * Creates a primary / foreign key relation between two tables
 	 * @param sourceTableName The table that is referenced by a primary key from another table
-	 * @param sourceTableField The fields which are refrences by primary key fields in another table
+	 * @param sourceTableFields The fields which are referenced by a primary key fields in another table
 	 * @param targetTableName The table that has the primary keys which are referencing the source table
-	 * @param targetTableFields The primary field(s) in in the target table that are referencing the source table
+	 * @param targetTableFields The primary field(s) in the target table that are referencing the source table
 	 * @return The alter table statement to create the primary / foreign key relation.
 	 '
 	 */
-	generateFKConstraint(firstTableName, firstTableFields, secondTableName, secondTableFields) {
-		return "\tforeign key (" + firstTableFields +  ") references " + secondTableName +  "(" + secondTableFields  + ")"
+    generateFKConstraint (sourceTableName, sourceTableFields, targetTableName, targetTableFields) {
+		return "\tforeign key (" + sourceTableFields +  ") references " + targetTableName +  "(" + targetTableFields  + ")"
 	}
 }; 
 
