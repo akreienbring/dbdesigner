@@ -24,7 +24,7 @@
     "@fortawesome/fontawesome-free": "^5.15.0",
     "@panzoom/panzoom": "^4.3.2",
     "jsplumb": "^2.14.6",
-    "moment": "^2.29.0",
+    "moment": "^2.29.2",
     "tempusdominus-bootstrap-4": "^5.1.2"
   }
 }
